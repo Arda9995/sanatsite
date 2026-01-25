@@ -187,7 +187,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                 {artwork.title}
               </h1>
               <p className="text-2xl font-light text-gray-900">
-                {formatPrice(calculatePrice(), (artwork.base_currency as any) || 'EUR')}
+                {formatPrice(calculatePrice() * quantity, (artwork.base_currency as any) || 'EUR')}
               </p>
               <p className="text-sm text-gray-500 mt-1">
                 {t('basePrice')}: {formatPrice(artwork.price, (artwork.base_currency as any) || 'EUR')}

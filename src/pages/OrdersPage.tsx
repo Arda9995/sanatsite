@@ -190,9 +190,12 @@ export default function OrdersPage() {
                         >
                           {item.artworks.artists?.name || t('unknownArtist')}
                         </button>
-                        <p className="text-lg font-bold text-orange-600 mt-1">
-                          {formatPrice(item.price, currency)}
-                        </p>
+                        <div className="flex justify-between items-center mt-1">
+                          <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
+                          <p className="text-lg font-bold text-orange-600">
+                            {formatPrice(item.price * item.quantity, currency)}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))}

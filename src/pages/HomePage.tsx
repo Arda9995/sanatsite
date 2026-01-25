@@ -93,11 +93,12 @@ export default function HomePage() {
           artist_id: 'system',
           is_available: true,
           created_at: new Date().toISOString(),
-          user_id: 'system',
           medium: t(homeCat.label),
           dimensions: t('various'),
           year: 2024,
           featured: true,
+          base_currency: 'EUR',
+          orientation: 'horizontal',
           artists: {
             id: 'system',
             user_id: 'system',

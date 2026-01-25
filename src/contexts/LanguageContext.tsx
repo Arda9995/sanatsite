@@ -433,6 +433,11 @@ const translations: Record<Language, Record<string, string>> = {
     emailNotVerified: 'Email not verified. Please check your inbox or resend the link.',
     backToHome: 'Back to Home',
     goBackToSite: 'Go Back to Site',
+    enterOtpTitle: 'Enter Verification Code',
+    enterOtpMessage: 'A 6-digit code has been sent to your email. Please enter it below to verify your account.',
+    invalidCode: 'Invalid code. Please check and try again.',
+    verifyingCode: 'Verifying code...',
+    verifyCode: 'Verify Code',
   },
 
   tr: {
@@ -859,6 +864,11 @@ const translations: Record<Language, Record<string, string>> = {
     emailNotVerified: 'E-posta doğrulanmadı. Lütfen gelen kutunuzu kontrol edin veya bağlantıyı tekrar gönderin.',
     backToHome: 'Ana Sayfaya Dön',
     goBackToSite: 'Siteye Geri Dön',
+    enterOtpTitle: 'Doğrulama Kodunu Girin',
+    enterOtpMessage: 'E-posta adresinize 6 haneli bir kod gönderildi. Hesabınızı doğrulamak için lütfen aşağıya girin.',
+    invalidCode: 'Geçersiz kod. Lütfen kontrol edip tekrar deneyin.',
+    verifyingCode: 'Kod doğrulanıyor...',
+    verifyCode: 'Kodu Doğrula',
   },
 };
 

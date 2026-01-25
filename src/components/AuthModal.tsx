@@ -37,7 +37,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     } else {
       if (isSignUp) {
         onClose();
-        navigate('/verify-email');
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
       } else {
         onClose();
       }

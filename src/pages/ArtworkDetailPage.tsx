@@ -142,6 +142,38 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
     return scales[selectedSize] || 1.0;
   };
 
+  // Helpers for framing and material visuals
+  const getFrameStyles = () => {
+    if (selectedFrame === 'stretched-canvas') {
+      return {
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 0 100px rgba(0,0,0,0.1)',
+        padding: '2px',
+        background: '#fcfcfc',
+        borderRadius: '2px',
+        borderRight: '15px solid rgba(0,0,0,0.05)',
+        borderBottom: '15px solid rgba(0,0,0,0.1)',
+      };
+    }
+    return {
+      boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.3)',
+    };
+  };
+
+  const getMaterialOverlay = () => {
+    if (selectedMaterial === 'canvas') {
+      return (
+        <div
+          className="absolute inset-0 pointer-events-none opacity-40 mix-blend-overlay"
+          style={{
+            backgroundImage: `url('https://www.transparenttextures.com/patterns/canvas-fabric.png')`,
+            backgroundRepeat: 'repeat'
+          }}
+        />
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -180,16 +212,21 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           {/* Left Column - Image */}
           <div className="space-y-8">
-            <div className="aspect-[4/5] bg-gray-50 relative flex items-center justify-center overflow-hidden rounded-2xl">
-              <img
-                src={artwork.image_url}
-                alt={artwork.title}
+            <div className="aspect-[4/5] bg-gray-50 relative flex items-center justify-center overflow-hidden rounded-2xl group">
+              <div
+                className="relative transition-all duration-500 ease-in-out"
                 style={{
                   transform: `scale(${getImageScale()})`,
-                  transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                  ...getFrameStyles()
                 }}
-                className="w-full h-full object-contain"
-              />
+              >
+                <img
+                  src={artwork.image_url}
+                  alt={artwork.title}
+                  className="w-full h-full object-contain relative z-0"
+                />
+                {getMaterialOverlay()}
+              </div>
             </div>
             <p className="text-xs text-gray-500 text-center uppercase tracking-widest">
               {t('framesDisplayOnly')}

@@ -130,6 +130,18 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
     setAdding(false);
   };
 
+  // Helper for image scaling
+  const getImageScale = () => {
+    const scales: { [key: string]: number } = {
+      '38x50cm': 0.8,
+      '45x60cm': 0.85,
+      '60x80cm': 0.9,
+      '75x100cm': 0.95,
+      '96x128cm': 1.0
+    };
+    return scales[selectedSize] || 1.0;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -168,10 +180,14 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           {/* Left Column - Image */}
           <div className="space-y-8">
-            <div className="aspect-[4/5] bg-gray-50 relative">
+            <div className="aspect-[4/5] bg-gray-50 relative flex items-center justify-center overflow-hidden rounded-2xl">
               <img
                 src={artwork.image_url}
                 alt={artwork.title}
+                style={{
+                  transform: `scale(${getImageScale()})`,
+                  transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
                 className="w-full h-full object-contain"
               />
             </div>
@@ -413,14 +429,10 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
 
               <button
                 onClick={handleBack}
-                className="flex items-center gap-2 text-gray-600 hover:text-orange-600 transition-colors"
+                className="flex items-center gap-2 text-gray-600 hover:text-orange-600 transition-colors pt-4"
               >
                 <ArrowLeft className="w-5 h-5" />
                 {t('back')}
-              </button>
-
-              <button className="text-xs uppercase tracking-widest underline text-gray-500 hover:text-black">
-                {t('addToWishlist')}
               </button>
             </div>
           </div>

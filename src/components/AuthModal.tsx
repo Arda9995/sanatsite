@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -8,6 +9,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ onClose }: AuthModalProps) {
+  const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +31,12 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     if (error) {
       setError(error.message);
     } else {
-      onClose();
+      if (isSignUp) {
+        onClose();
+        navigate('/verify-email');
+      } else {
+        onClose();
+      }
     }
     setLoading(false);
   };

@@ -418,6 +418,18 @@ const translations: Record<Language, Record<string, string>> = {
     follow: 'Follow',
     pleaseSignIn: 'Please sign in to follow artists',
     followUs: 'Follow Us',
+
+    // Email Verification
+    verifyEmailTitle: 'Check Your Email',
+    verifyEmailMessage: 'We have sent a verification link to your email address. Please click the link to verify your account.',
+    verifyEmailSpamNote: "If you don't see the email, please check your spam folder.",
+    resendVerificationEmail: 'Resend Verification Email',
+    verificationEmailSent: 'Verification email resent!',
+    backToSignIn: 'Back to Sign In',
+    verificationSuccessful: 'Verification Successful!',
+    verificationSuccessSubtitle: 'Your email has been verified. You can now sign in to your account.',
+    redirectingToLogin: 'Redirecting to login page in {seconds} seconds...',
+    goToSignIn: 'Go to Sign In',
   },
 
   tr: {
@@ -827,8 +839,20 @@ const translations: Record<Language, Record<string, string>> = {
     cancel: 'İptal',
     viewInRoom: 'Odada Görüntüle',
     follow: 'Takip Et',
-    pleaseSignIn: 'Sanatçıları takip etmek için giriş yapın',
+    pleaseSignIn: 'Sanatçıları takip etmek için lütfen giriş yapın',
     followUs: 'Bizi Takip Edin',
+
+    // Email Verification
+    verifyEmailTitle: 'E-postanızı Kontrol Edin',
+    verifyEmailMessage: 'E-posta adresinize bir doğrulama bağlantısı gönderdik. Hesabınızı doğrulamak için lütfen bağlantıya tıklayın.',
+    verifyEmailSpamNote: 'E-postayı görmüyorsanız, lütfen spam klasörünüzü kontrol edin.',
+    resendVerificationEmail: 'Doğrulama E-postasını Tekrar Gönder',
+    verificationEmailSent: 'Doğrulama e-postası tekrar gönderildi!',
+    backToSignIn: 'Giriş Yap Sayfasına Dön',
+    verificationSuccessful: 'Doğrulama Başarılı!',
+    verificationSuccessSubtitle: 'E-posta adresiniz doğrulandı. Artık hesabınıza giriş yapabilirsiniz.',
+    redirectingToLogin: '{seconds} saniye içinde giriş sayfasına yönlendiriliyorsunuz...',
+    goToSignIn: 'Giriş Yap Sayfasına Git',
   },
 };
 

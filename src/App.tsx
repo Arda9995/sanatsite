@@ -17,6 +17,8 @@ import ArtistDashboard from './pages/ArtistDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
 import ArtistApplicationForm from './pages/ArtistApplicationForm';
 import AdminPanel from './pages/AdminPanel';
+import VerifyEmail from './pages/VerifyEmail';
+import AuthCallback from './pages/AuthCallback';
 import AuthModal from './components/AuthModal';
 import Footer from './components/Footer';
 
@@ -59,6 +61,8 @@ function App() {
                       <Route path="/admin" element={<AdminPanel />} />
                       <Route path="/artist-dashboard" element={<ArtistDashboard />} />
                       <Route path="/artist-application" element={<ArtistApplicationForm />} />
+                      <Route path="/verify-email" element={<VerifyEmail />} />
+                      <Route path="/auth/callback" element={<AuthCallback />} />
                       {/* Artist slug routes must be last to avoid catching other routes */}
                       <Route path="/artist/:artistSlug" element={<ArtistsPage />} />
                       <Route path="/:artistSlug" element={<ArtistsPage />} />

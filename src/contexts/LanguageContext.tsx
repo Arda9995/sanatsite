@@ -430,6 +430,7 @@ const translations: Record<Language, Record<string, string>> = {
     verificationSuccessSubtitle: 'Your email has been verified. You can now sign in to your account.',
     redirectingToLogin: 'Redirecting to login page in {seconds} seconds...',
     goToSignIn: 'Go to Sign In',
+    emailNotVerified: 'Email not verified. Please check your inbox or resend the link.',
   },
 
   tr: {
@@ -853,6 +854,7 @@ const translations: Record<Language, Record<string, string>> = {
     verificationSuccessSubtitle: 'E-posta adresiniz doğrulandı. Artık hesabınıza giriş yapabilirsiniz.',
     redirectingToLogin: '{seconds} saniye içinde giriş sayfasına yönlendiriliyorsunuz...',
     goToSignIn: 'Giriş Yap Sayfasına Git',
+    emailNotVerified: 'E-posta doğrulanmadı. Lütfen gelen kutunuzu kontrol edin veya bağlantıyı tekrar gönderin.',
   },
 };
 

@@ -12,7 +12,17 @@ export default function PaymentResultPage() {
     const [message, setMessage] = useState('Verifying payment...');
 
     useEffect(() => {
+        const statusParam = searchParams.get('status');
+        const messageParam = searchParams.get('message');
         const token = searchParams.get('token');
+
+        // Handle explicit failure from backend redirect
+        if (statusParam === 'failure') {
+            setStatus('error');
+            setMessage(messageParam || 'Payment failed.');
+            return;
+        }
+
         if (!token) {
             setStatus('error');
             setMessage('No payment token found.');

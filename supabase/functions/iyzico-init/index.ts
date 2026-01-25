@@ -15,46 +15,64 @@ serve(async (req) => {
     const { user, cartItems, totalAmount, shippingAddress } = await req.json()
 
     // Initialize Iyzipay
-    // NOTE: Set these env variables in your Supabase project (or .env.local for local dev if supported)
-    const iyzipay = new Iyzipay({
-      apiKey: Deno.env.get('IYZICO_API_KEY') || '',
-      secretKey: Deno.env.get('IYZICO_SECRET_KEY') || '',
-      uri: Deno.env.get('IYZICO_BASE_URL') || 'https://sandbox-api.iyzipay.com'
+    const apiKey = Deno.env.get('IYZICO_API_KEY');
+    const secretKey = Deno.env.get('IYZICO_SECRET_KEY');
+    const baseUrl = 'https://sandbox-api.iyzipay.com'; // Enforce Sandbox URL for dev to avoid 404s from bad secrets
+
+    console.log("Iyzipay Init Config:", {
+      hasApiKey: !!apiKey,
+      hasSecretKey: !!secretKey,
+      baseUrl
     });
 
-    // Create a unique basket ID (using timestamp for simplicity, but could be DB ID)
+    const iyzipay = new Iyzipay({
+      apiKey: apiKey || '',
+      secretKey: secretKey || '',
+      uri: baseUrl
+    });
+
+    // Create a unique basket ID
     const basketId = `B${Date.now()}`;
     const conversationId = `C${Date.now()}`;
 
-    // Prepare basket items for Iyzico
-    const basketItems = cartItems.map((item: any) => ({
-      id: item.artwork_id,
-      name: item.artwork.title,
-      category1: 'Art',
-      itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
-      price: item.price || item.artwork.price
-    }));
+    // Prepare basket items and Recalculate Total
+    let calculatedTotal = 0;
+    const basketItems = cartItems.map((item: any) => {
+      const itemPrice = parseFloat((item.price || item.artwork.price).toString());
+      calculatedTotal += itemPrice;
+      return {
+        id: item.artwork_id,
+        name: item.artwork.title,
+        category1: 'Art',
+        itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
+        price: itemPrice.toFixed(2)
+      };
+    });
+
+    const finalPrice = calculatedTotal.toFixed(2);
 
     const request = {
       locale: Iyzipay.LOCALE.TR,
       conversationId: conversationId,
-      price: totalAmount,
-      paidPrice: totalAmount,
-      currency: Iyzipay.CURRENCY.TRY, // Assuming TRY for Iyzico as standard
+      price: finalPrice,
+      paidPrice: finalPrice,
+      currency: Iyzipay.CURRENCY.TRY,
       basketId: basketId,
       paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
-      callbackUrl: `${req.headers.get('origin')}/payment-result`,
+      // IMPORTANT: Point to the 'iyzico-check' function, NOT the frontend
+      // This ensures the callback (POST) is handled by the backend, which then redirects to the frontend.
+      callbackUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/iyzico-check`,
       enabledInstallments: [2, 3, 6, 9],
       buyer: {
-        id: user.id,
+        id: user.id || 'guest',
         name: shippingAddress.fullName.split(' ')[0],
         surname: shippingAddress.fullName.split(' ').slice(1).join(' ') || 'User',
         gsmNumber: shippingAddress.phone,
         email: shippingAddress.email,
-        identityNumber: '11111111111', // Mandatory field, but often dummy for non-citizens or if not collected. Ideally collect TCKN.
-        lastLoginDate: '2015-10-05 12:43:35', // Placeholder
+        identityNumber: '11111111111',
+        lastLoginDate: '2024-01-01 12:00:00',
         registrationAddress: shippingAddress.address,
-        ip: '85.34.78.112', // Ideally get from req headers
+        ip: '85.34.78.112',
         city: shippingAddress.city,
         country: shippingAddress.country,
         zipCode: shippingAddress.zipCode

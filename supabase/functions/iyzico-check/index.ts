@@ -13,26 +13,45 @@ serve(async (req) => {
     }
 
     try {
-        const { token } = await req.json()
+        let token: string | undefined;
+        let isCallback = false;
 
-        // 1. Setup Iyzico
+        // 1. Determine Request Type (Callback vs Verification)
+        const contentType = req.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+            // Frontend checking status via JSON
+            const body = await req.json();
+            token = body.token;
+        } else if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
+            // Iyzico Callback via Form POST
+            const formData = await req.formData();
+            token = formData.get('token')?.toString();
+            isCallback = true;
+        }
+
+        if (!token) {
+            throw new Error('No token found in request');
+        }
+
+        console.log(`Processing ${isCallback ? 'Callback' : 'Verification'} for token: ${token}`);
+
+        // 2. Setup Iyzico
+        const apiKey = Deno.env.get('IYZICO_API_KEY');
+        const secretKey = Deno.env.get('IYZICO_SECRET_KEY');
+        const baseUrl = 'https://sandbox-api.iyzipay.com'; // Enforce Sandbox URL
+
         const iyzipay = new Iyzipay({
-            apiKey: Deno.env.get('IYZICO_API_KEY') || '',
-            secretKey: Deno.env.get('IYZICO_SECRET_KEY') || '',
-            uri: Deno.env.get('IYZICO_BASE_URL') || 'https://sandbox-api.iyzipay.com'
+            apiKey: apiKey || '',
+            secretKey: secretKey || '',
+            uri: baseUrl
         });
-
-        // 2. Setup Supabase Admin Client (to create orders securely)
-        const supabaseAdmin = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
 
         // 3. Retrieve payment result from Iyzico
         const verificationResult = await new Promise((resolve, reject) => {
             iyzipay.checkoutForm.retrieve({
                 locale: Iyzipay.LOCALE.TR,
-                conversationId: '123456789', // Ideally pass from frontend or store
+                conversationId: '123456789',
                 token: token
             }, (err: any, result: any) => {
                 if (err) reject(err);
@@ -40,49 +59,61 @@ serve(async (req) => {
             });
         }) as any;
 
-        if (verificationResult.status !== 'success' || verificationResult.paymentStatus !== 'SUCCESS') {
-            throw new Error(verificationResult.errorMessage || 'Payment validation failed');
+        // Log the full result for debugging
+        console.log("Iyzico Verification Result:", JSON.stringify(verificationResult, null, 2));
+
+        const isSuccess = verificationResult.status === 'success' && verificationResult.paymentStatus === 'SUCCESS';
+        const failureMessage = verificationResult.errorMessage || 'Payment validation failed';
+
+        // 4. Handle Response based on Source
+        if (isCallback) {
+            // Redirect to Frontend
+            // NOTE: You might need to adjust the redirect URL if your frontend is not localhost in production.
+            // Ideally, pass the frontend URL as a param or env var, or fallback to a known URL.
+            // For now, we assume standard localhost for dev or a configured SITE_URL.
+
+            // Hardcoded for now based on user context, but ideally Deno.env.get('SITE_URL')
+            const frontendUrl = Deno.env.get('SITE_URL') || 'http://localhost:5173';
+            const redirectUrl = new URL(`${frontendUrl}/payment-result`);
+
+            if (isSuccess) {
+                redirectUrl.searchParams.set('status', 'success');
+                redirectUrl.searchParams.set('token', token);
+                redirectUrl.searchParams.set('paymentId', verificationResult.paymentId);
+            } else {
+                redirectUrl.searchParams.set('status', 'failure');
+                redirectUrl.searchParams.set('message', failureMessage);
+            }
+
+            return Response.redirect(redirectUrl.toString(), 303);
+
+        } else {
+            // Return JSON to Frontend
+            if (!isSuccess) {
+                throw new Error(failureMessage);
+            }
+
+            return new Response(JSON.stringify({
+                status: 'success',
+                paymentId: verificationResult.paymentId,
+                data: verificationResult
+            }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+            });
         }
 
-        // 4. Extract User and Order details from Payment Metadata (basketId) or user logic
-        // For specific basket items, Iyzico returns them. 
-        // Ideally, we'd have stored a 'pending_order' in our DB with the basketId, 
-        // or we reconstruct the order from the cart here.
+    } catch (error: any) {
+        console.error("Verification Error:", error);
 
-        // SIMULATED: Create order now that payment is confirmed.
-        // In a real app, you might decode the 'basketID' or use the user ID from the Auth token (req header).
-        // Here we assume the frontend is trusted to clear cart, but ideally backend does it.
-
-        // NOTE: This basic check doesn't link the payment to the cart exactly without more state. 
-        // Improvement: Pass user_id in the token generation or use metadata. 
-        // Here we will just return success and let the frontend finalize the "visuals",
-        // BUT strictly we should create the order line here.
-
-        // Let's assume we rely on the Frontend to trigger the "Create Order" AFTER this verification?
-        // No, that's insecure.
-
-        // We should parse the basket items and create the order here.
-        const basketId = verificationResult.basketId; // e.g., "B172..."
-        const totalAmount = verificationResult.price;
-
-        // For this implementation, we will return SUCCESS and let the Frontend know it is verified.
-        // To match strict security, we should create the order here.
-        // However, we don't have the user ID easily unless we decode the JWT from the header.
-
+        // Return 200 even on error so the frontend 'invoke' client parses the JSON body 
+        // and we can display the actual error message to the user/developer.
         return new Response(JSON.stringify({
-            status: 'success',
-            paymentId: verificationResult.paymentId,
-            data: verificationResult
+            errorMessage: error.message || 'Unknown Error',
+            status: 'failure'
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
-        })
-
-    } catch (error) {
-        console.error("Verification Error:", error)
-        return new Response(JSON.stringify({ error: error.message, status: 'failure' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
-        })
+        });
     }
 })

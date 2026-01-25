@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase'; // Using the supabase client that includes functions
 import { useCart } from '../contexts/CartContext';
@@ -10,6 +10,10 @@ export default function PaymentResultPage() {
     const { clearCart } = useCart();
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
     const [message, setMessage] = useState('Verifying payment...');
+
+    const verificationStarted = useState(false); // Using state actually causes re-renders, better to use Ref for this specific pattern or move logic outside effect?
+    // Actually, useRef is the standard way to prevent strict mode double-firing for specialized init logic.
+    const runOnce = useRef(false);
 
     useEffect(() => {
         const statusParam = searchParams.get('status');
@@ -28,6 +32,10 @@ export default function PaymentResultPage() {
             setMessage('No payment token found.');
             return;
         }
+
+        // Prevent double invocation
+        if (runOnce.current) return;
+        runOnce.current = true;
 
         verifyPayment(token);
     }, [searchParams]);

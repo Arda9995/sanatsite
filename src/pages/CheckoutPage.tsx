@@ -79,7 +79,7 @@ export default function CheckoutPage() {
       baseCurrencyToUse,
       currency
     );
-    return sum + priceInCurrentCurrency;
+    return sum + (priceInCurrentCurrency * item.quantity);
   }, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,36 +88,48 @@ export default function CheckoutPage() {
 
     setLoading(true);
 
-    const { data: ordersData, error: orderError } = await (supabase
-      .from('orders') as any)
-      .insert({
-        user_id: user.id,
-        total_amount: total,
-        status: 'pending',
-        shipping_address: formData as any,
-      })
-      .select();
+    const isMockUser = user.id === 'da3db02a-6096-4876-857e-000000000000';
+    let order = null;
+    let orderError = null;
 
-    const order = ordersData?.[0];
+    if (isMockUser) {
+      console.log('🤖 Admin Mock User: Simulating order creation');
+      order = { id: `mock-order-${Date.now()}` };
+    } else {
+      const { data: ordersData, error: err } = await (supabase
+        .from('orders') as any)
+        .insert({
+          user_id: user.id,
+          total_amount: total,
+          status: 'pending',
+          shipping_address: formData as any,
+        })
+        .select();
+
+      order = ordersData?.[0];
+      orderError = err;
+    }
 
     if (!orderError && order) {
       const orderItems = cartItems.map((item) => ({
         order_id: order.id,
         artwork_id: item.artwork_id,
         price: item.price || item.artwork.price,
-        quantity: 1,
+        quantity: item.quantity,
         size: item.size,
         material: item.material,
         frame: item.frame
       }));
 
-      await (supabase.from('order_items') as any).insert(orderItems);
+      if (!isMockUser) {
+        await (supabase.from('order_items') as any).insert(orderItems);
 
-      for (const item of cartItems) {
-        await (supabase
-          .from('artworks') as any)
-          .update({ is_available: false })
-          .eq('id', item.artwork_id);
+        for (const item of cartItems) {
+          await (supabase
+            .from('artworks') as any)
+            .update({ is_available: false })
+            .eq('id', item.artwork_id);
+        }
       }
 
       await clearCart();
@@ -393,9 +405,12 @@ export default function CheckoutPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-sm truncate">{item.artwork?.title || t('unknownArtwork')}</h3>
                       <p className="text-sm text-gray-600">{item.artwork?.artists?.name || t('unknownArtist')}</p>
-                      <p className="text-lg font-bold text-orange-600 mt-2">
-                        {formatPrice(item.price || item.artwork?.price || 0, (item.artwork?.base_currency as any) || 'EUR')}
-                      </p>
+                      <div className="flex justify-between items-center mt-2">
+                        <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
+                        <p className="text-lg font-bold text-orange-600">
+                          {formatPrice((item.price || item.artwork?.price || 0) * item.quantity, (item.artwork?.base_currency as any) || 'EUR')}
+                        </p>
+                      </div>
                       {(item.size || item.material || item.frame) && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {item.size && (

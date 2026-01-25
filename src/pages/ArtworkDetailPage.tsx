@@ -35,6 +35,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
   const [selectedFrame, setSelectedFrame] = useState('no-frame');
   const [selectedMaterial, setSelectedMaterial] = useState('photograph-paper');
   const [selectedSize, setSelectedSize] = useState('38x50cm');
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     if (artworkId) {
@@ -124,7 +125,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
         material: selectedMaterial,
         frame: selectedFrame,
         price: calculatePrice()
-      });
+      }, quantity);
     }
     setAdding(false);
   };
@@ -346,7 +347,8 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                 <div className="w-20">
                   <input
                     type="number"
-                    defaultValue="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                     min="1"
                     className="w-full py-3 px-4 border border-gray-200 text-center focus:outline-none focus:border-black"
                   />

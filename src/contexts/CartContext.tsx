@@ -18,7 +18,7 @@ interface CartItemWithArtwork {
 interface CartContextType {
   cartItems: CartItemWithArtwork[];
   cartCount: number;
-  addToCart: (artworkId: string, options?: { size?: string; material?: string; frame?: string; price?: number }) => Promise<void>;
+  addToCart: (artworkId: string, options?: { size?: string; material?: string; frame?: string; price?: number }, quantity?: number) => Promise<void>;
   removeFromCart: (cartItemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
   loading: boolean;
@@ -122,7 +122,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
-  const addToCart = async (artworkId: string, options?: { size?: string; material?: string; frame?: string; price?: number }) => {
+  const addToCart = async (artworkId: string, options?: { size?: string; material?: string; frame?: string; price?: number }, quantity: number = 1) => {
     if (!user) {
       showToast('Please sign in to add items to cart', 'info');
       return;
@@ -133,7 +133,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const newItem = {
         id: `mock-item-${Date.now()}`,
         artwork_id: artworkId,
-        quantity: 1,
+        quantity: quantity,
         size: options?.size || null,
         material: options?.material || null,
         frame: options?.frame || null,
@@ -158,12 +158,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const updatedCart = [...cartItems, fullItem as any];
       setCartItems(updatedCart);
       localStorage.setItem('sanatsite_mock_cart', JSON.stringify(updatedCart));
-      showToast('Added to cart (Admin Mode)', 'success');
+      showToast(`Added ${quantity} item(s) to cart (Admin Mode)`, 'success');
       return;
     }
 
     // REAL DB HANDLER
-    console.log('Adding to cart:', artworkId, options);
+    console.log('Adding to cart:', artworkId, options, 'Quantity:', quantity);
 
     // Check if item with same options already exists
     const existingItem = (cartItems as any[]).find(item =>
@@ -176,7 +176,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (existingItem) {
       const { error } = await (supabase
         .from('cart_items' as any) as any)
-        .update({ quantity: existingItem.quantity + 1 })
+        .update({ quantity: existingItem.quantity + quantity })
         .eq('id', existingItem.id);
 
       if (!error) {
@@ -194,7 +194,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       .insert({
         user_id: user.id,
         artwork_id: artworkId,
-        quantity: 1,
+        quantity: quantity,
         size: options?.size || null,
         material: options?.material || null,
         frame: options?.frame || null,

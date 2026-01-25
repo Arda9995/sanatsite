@@ -34,6 +34,17 @@ function ScrollToTop() {
 
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('login') === 'true') {
+      setShowAuthModal(true);
+      // Clean up the URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [location]);
 
   return (
     <AuthProvider>

@@ -431,6 +431,8 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToLogin: 'Redirecting to login page in {seconds} seconds...',
     goToSignIn: 'Go to Sign In',
     emailNotVerified: 'Email not verified. Please check your inbox or resend the link.',
+    backToHome: 'Back to Home',
+    goBackToSite: 'Go Back to Site',
   },
 
   tr: {
@@ -855,6 +857,8 @@ const translations: Record<Language, Record<string, string>> = {
     redirectingToLogin: '{seconds} saniye içinde giriş sayfasına yönlendiriliyorsunuz...',
     goToSignIn: 'Giriş Yap Sayfasına Git',
     emailNotVerified: 'E-posta doğrulanmadı. Lütfen gelen kutunuzu kontrol edin veya bağlantıyı tekrar gönderin.',
+    backToHome: 'Ana Sayfaya Dön',
+    goBackToSite: 'Siteye Geri Dön',
   },
 };
 

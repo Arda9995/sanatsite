@@ -10,6 +10,7 @@ import { CornerFrame, AbstractBrush, CirclePattern, Sparkle, DottedCircle, Sketc
 interface Order {
   id: string;
   total_amount: number;
+  currency?: 'USD' | 'EUR' | 'TRY' | 'GBP'; // Added currency field
   status: string;
   created_at: string;
   order_items: {
@@ -28,7 +29,7 @@ interface Order {
 export default function OrdersPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { formatPrice, currency } = useCurrency();
+  const { formatPrice } = useCurrency();
   const { t, language } = useLanguage();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -169,7 +170,7 @@ export default function OrdersPage() {
                               order.status === 'processing' ? t('processing2') : order.status}
                     </span>
                     <p className="text-2xl font-bold bg-gradient-to-r from-pink-500 via-orange-600 to-yellow-500 bg-clip-text text-transparent mt-2">
-                      {formatPrice(order.total_amount, currency)}
+                      {formatPrice(order.total_amount, order.currency || 'EUR')}
                     </p>
                   </div>
                 </div>
@@ -193,7 +194,7 @@ export default function OrdersPage() {
                         <div className="flex justify-between items-center mt-1">
                           <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
                           <p className="text-lg font-bold text-orange-600">
-                            {formatPrice(item.price * item.quantity, currency)}
+                            {formatPrice(item.price * item.quantity, order.currency || 'EUR')}
                           </p>
                         </div>
                       </div>

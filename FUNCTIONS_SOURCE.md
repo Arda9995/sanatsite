@@ -175,10 +175,14 @@ serve(async (req) => {
         console.log(`Processing ${isCallback ? 'Callback' : 'Verification'} for token: ${token}`);
 
         // 2. Setup Iyzico
+        const apiKey = Deno.env.get('IYZICO_API_KEY');
+        const secretKey = Deno.env.get('IYZICO_SECRET_KEY');
+        const baseUrl = 'https://sandbox-api.iyzipay.com'; // Enforce Sandbox
+
         const iyzipay = new Iyzipay({
-            apiKey: Deno.env.get('IYZICO_API_KEY') || '',
-            secretKey: Deno.env.get('IYZICO_SECRET_KEY') || '',
-            uri: Deno.env.get('IYZICO_BASE_URL') || 'https://sandbox-api.iyzipay.com'
+            apiKey: apiKey || '',
+            secretKey: secretKey || '',
+            uri: baseUrl
         });
 
         // 3. Retrieve payment result from Iyzico
@@ -193,24 +197,119 @@ serve(async (req) => {
             });
         }) as any;
 
-        const isSuccess = verificationResult.status === 'success' && verificationResult.paymentStatus === 'SUCCESS';
-        const failureMessage = verificationResult.errorMessage || 'Payment validation failed';
+        // Log the Full Result for Debugging
+        console.log("Iyzico Verification Result (Raw):", JSON.stringify(verificationResult, null, 2));
+
+        const isSuccess = verificationResult?.status === 'success' && verificationResult?.paymentStatus === 'SUCCESS';
+        const failureMessage = verificationResult?.errorMessage || 'Payment validation failed';
+
+        // 5. Create Order if Success
+        if (isSuccess && !isCallback) {
+            try {
+                const supabaseAdmin = createClient(
+                    Deno.env.get('SUPABASE_URL') ?? '',
+                    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+                );
+
+                // Get User from Auth Header
+                const authHeader = req.headers.get('Authorization');
+                if (authHeader) {
+                    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
+
+                    if (user) {
+                        // IDEMPOTENCY CHECK:
+                        // Check if an order was created in the last 2 minutes for this user with this exact amount.
+                        // We are keeping this simple and robust to avoid schema issues with JSON querying.
+                        
+                        const checkPrice = parseFloat(verificationResult.price); 
+                        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+
+                        const { data: existingRecentOrder } = await supabaseAdmin
+                            .from('orders')
+                            .select('id')
+                            .eq('user_id', user.id)
+                            .eq('total_amount', checkPrice)
+                            .gte('created_at', twoMinutesAgo)
+                            .maybeSingle();
+
+                        if (existingRecentOrder) {
+                            console.log(`DUPLICATE PREVENTED: Order ${existingRecentOrder.id} already exists for user ${user.id} with amount ${checkPrice} within 2 minutes.`);
+                        } else {
+                            // Check CART ITEMS
+                            const { data: cartItems } = await supabaseAdmin
+                                .from('cart_items')
+                                .select('*')
+                                .eq('user_id', user.id);
+
+                            if (cartItems && cartItems.length > 0) {
+                                // Create Order Record
+                                // Safely Construct Shipping Address with Fallbacks
+                                // Sometimes Iyzico doesn't return the full object structure on check, or validation mode differs.
+                                const orderShippingAddress = {
+                                    contactName: verificationResult?.shippingAddress?.contactName || 'Unknown',
+                                    city: verificationResult?.shippingAddress?.city || '',
+                                    country: verificationResult?.shippingAddress?.country || '',
+                                    address: verificationResult?.shippingAddress?.address || '',
+                                    zipCode: verificationResult?.shippingAddress?.zipCode || '',
+                                    payment_token: token,
+                                    payment_id: verificationResult?.paymentId,
+                                    conversation_id: verificationResult?.conversationId,
+                                    buyer_email: verificationResult?.buyer?.email,
+                                    buyer_gsmNumber: verificationResult?.buyer?.gsmNumber,
+                                };
+                                
+                                const { data: order, error: orderError } = await supabaseAdmin
+                                    .from('orders')
+                                    .insert({
+                                        user_id: user.id,
+                                        total_amount: checkPrice,
+                                        status: 'completed',
+                                        shipping_address: orderShippingAddress,
+                                    })
+                                    .select()
+                                    .single();
+
+                                if (!orderError) {
+                                    // Create Order Items
+                                    const orderItemsPayload = cartItems.map((item: any) => ({
+                                        order_id: order.id,
+                                        artwork_id: item.artwork_id,
+                                        price: item.price,
+                                        quantity: item.quantity,
+                                        size: item.size,
+                                        material: item.material,
+                                        frame: item.frame
+                                    }));
+
+                                    await supabaseAdmin.from('order_items').insert(orderItemsPayload);
+
+                                    // Clear Cart
+                                    await supabaseAdmin.from('cart_items').delete().eq('user_id', user.id);
+                                    console.log(`SUCCESS: Order ${order.id} created.`);
+                                } else {
+                                    console.error("Order Insert Error:", orderError);
+                                }
+                            } else {
+                                console.log("SKIPPING: Cart is empty (maybe already processed?)");
+                            }
+                        }
+                    }
+                }
+            } catch (orderError) {
+                console.error("Failed to create order records:", orderError);
+            }
+        }
 
         // 4. Handle Response based on Source
         if (isCallback) {
             // Redirect to Frontend
-            // NOTE: You might need to adjust the redirect URL if your frontend is not localhost in production.
-            // Ideally, pass the frontend URL as a param or env var, or fallback to a known URL.
-            // For now, we assume standard localhost for dev or a configured SITE_URL.
-            
-            // Hardcoded for now based on user context, but ideally Deno.env.get('SITE_URL')
             const frontendUrl = Deno.env.get('SITE_URL') || 'http://localhost:5173'; 
             const redirectUrl = new URL(`${frontendUrl}/payment-result`);
             
             if (isSuccess) {
                 redirectUrl.searchParams.set('status', 'success');
                 redirectUrl.searchParams.set('token', token);
-                redirectUrl.searchParams.set('paymentId', verificationResult.paymentId);
+                redirectUrl.searchParams.set('paymentId', verificationResult?.paymentId);
             } else {
                 redirectUrl.searchParams.set('status', 'failure');
                 redirectUrl.searchParams.set('message', failureMessage);
@@ -226,7 +325,7 @@ serve(async (req) => {
 
             return new Response(JSON.stringify({
                 status: 'success',
-                paymentId: verificationResult.paymentId,
+                paymentId: verificationResult?.paymentId,
                 data: verificationResult
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },

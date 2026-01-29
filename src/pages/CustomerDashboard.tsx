@@ -164,6 +164,7 @@ export default function CustomerDashboard() {
                     price,
                     base_currency,
                     artist_id,
+                    is_deleted,
                     artists (name)
                 )
             `)
@@ -171,8 +172,9 @@ export default function CustomerDashboard() {
             .order('created_at', { ascending: false });
 
         if (data) {
-            setFavorites(data as any);
-            setStats(prev => ({ ...prev, totalFavorites: data.length }));
+            const validFavorites = (data as any[]).filter(f => f.artworks && !f.artworks.is_deleted);
+            setFavorites(validFavorites as any);
+            setStats(prev => ({ ...prev, totalFavorites: validFavorites.length }));
         }
     };
 

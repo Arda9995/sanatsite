@@ -98,6 +98,7 @@ export default function ArtworksPage() {
       .from('artworks')
       .select('*, artists(*)')
       .eq('is_available', true)
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
 
     // Category filter

@@ -48,7 +48,8 @@ export default function ArtistsPage() {
             .from('artworks') as any)
             .select('*', { count: 'exact', head: true })
             .eq('artist_id', artist.id)
-            .eq('is_available', true);
+            .eq('is_available', true)
+            .eq('is_deleted', false);
 
           return { ...artist, artwork_count: count || 0 };
         })
@@ -74,6 +75,7 @@ export default function ArtistsPage() {
         .select('*')
         .eq('artist_id', artist.id)
         .eq('is_available', true)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false });
 
       setSelectedArtist({ ...(artist as any), artwork_count: artworks?.length || 0 });
@@ -109,6 +111,7 @@ export default function ArtistsPage() {
         .select('*, artists(*)')
         .eq('artist_id', id)
         .eq('is_available', true)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false });
 
       setSelectedArtist({ ...(artist as any), artwork_count: artworks?.length || 0 });

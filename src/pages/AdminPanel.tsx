@@ -60,7 +60,7 @@ export default function AdminPanel() {
     setLoadingData(true);
 
     const [artworksRes, artistsRes, categoriesRes, applicationsRes, submissionsRes] = await Promise.all([
-      (supabase.from('artworks' as any) as any).select('*, artists(name, slug), categories(name)').order('created_at', { ascending: false }),
+      (supabase.from('artworks' as any) as any).select('*, artists(name, slug), categories(name)').eq('is_deleted', false).order('created_at', { ascending: false }),
       (supabase.from('artists' as any) as any).select('*').order('name'),
       (supabase.from('categories' as any) as any).select('id, name').order('name'),
       (supabase.from('artist_applications' as any) as any).select('*').order('created_at', { ascending: false }),
@@ -190,9 +190,9 @@ export default function AdminPanel() {
     if (!confirm(t('deleteArtworkConfirm'))) return;
 
     try {
-      const { error } = await supabase
-        .from('artworks' as any)
-        .delete()
+      const { error } = await (supabase
+        .from('artworks' as any) as any)
+        .update({ is_deleted: true })
         .eq('id', id);
 
       if (error) throw error;
@@ -262,9 +262,9 @@ export default function AdminPanel() {
     if (!confirm(t('deleteArtistConfirm'))) return;
     try {
       // Delete related artworks first
-      const { error: artworksError } = await supabase
-        .from('artworks' as any)
-        .delete()
+      const { error: artworksError } = await (supabase
+        .from('artworks' as any) as any)
+        .update({ is_deleted: true })
         .eq('artist_id', id);
 
       if (artworksError) console.warn('Error deleting artworks:', artworksError);

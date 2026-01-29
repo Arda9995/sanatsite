@@ -62,6 +62,7 @@ export default function HomePage() {
           .select('*, artists(*), categories(*)')
           .eq('category_id', dbCat.id)
           .eq('is_available', true)
+          .eq('is_deleted', false)
           .neq('image_url', '')
           .not('image_url', 'is', null)
           .limit(1)

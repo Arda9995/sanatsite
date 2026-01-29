@@ -48,6 +48,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
       .from('artworks')
       .select('*, artists(*)')
       .eq('id', artworkId as string)
+      .eq('is_deleted', false)
       .maybeSingle();
 
     if (data) {

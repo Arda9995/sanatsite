@@ -82,6 +82,7 @@ export interface Database {
           year: number | null
           orientation: string
           is_available: boolean
+          is_deleted: boolean
           featured: boolean
           created_at: string
         }
@@ -99,6 +100,7 @@ export interface Database {
           year?: number | null
           orientation?: string
           is_available?: boolean
+          is_deleted?: boolean
           featured?: boolean
           created_at?: string
         }
@@ -116,6 +118,7 @@ export interface Database {
           year?: number | null
           orientation?: string
           is_available?: boolean
+          is_deleted?: boolean
           featured?: boolean
           created_at?: string
         }
@@ -160,6 +163,7 @@ export interface Database {
           id: string
           user_id: string
           total_amount: number
+          currency: string | null
           status: string
           shipping_address: Json | null
           created_at: string
@@ -168,6 +172,7 @@ export interface Database {
           id?: string
           user_id: string
           total_amount: number
+          currency?: string | null
           status?: string
           shipping_address?: Json | null
           created_at?: string
@@ -176,6 +181,7 @@ export interface Database {
           id?: string
           user_id?: string
           total_amount?: number
+          currency?: string | null
           status?: string
           shipping_address?: Json | null
           created_at?: string

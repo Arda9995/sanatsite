@@ -92,7 +92,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             .from('artworks')
             .select('*')
             .eq('id', item.artwork_id)
-            .single();
+            .eq('is_deleted', false)
+            .maybeSingle();
 
           if (!artwork) return null;
 
@@ -112,165 +113,165 @@ export function CartProvider({ children }: { children: ReactNode }) {
         })
       );
 
-      const validItems = itemsWithArtwork.filter((item: any) => item !== null) as CartItemWithArtwork[];
-      setCartItems(validItems);
-    } catch (err) {
-      console.error('💥 Unexpected error loading cart:', err);
-      showToast('Failed to load cart', 'error');
-    }
+  const validItems = itemsWithArtwork.filter((item: any) => item !== null) as CartItemWithArtwork[];
+  setCartItems(validItems);
+} catch (err) {
+  console.error('💥 Unexpected error loading cart:', err);
+  showToast('Failed to load cart', 'error');
+}
 
-    setLoading(false);
+setLoading(false);
   };
 
-  const addToCart = async (artworkId: string, options?: { size?: string; material?: string; frame?: string; price?: number }) => {
-    if (!user) {
-      showToast('Please sign in to add items to cart', 'info');
+const addToCart = async (artworkId: string, options?: { size?: string; material?: string; frame?: string; price?: number }) => {
+  if (!user) {
+    showToast('Please sign in to add items to cart', 'info');
+    return;
+  }
+
+  // MOCK USER HANDLER
+  if (isMockUser) {
+    const newItem = {
+      id: `mock-item-${Date.now()}`,
+      artwork_id: artworkId,
+      quantity: 1,
+      size: options?.size || null,
+      material: options?.material || null,
+      frame: options?.frame || null,
+      price: options?.price || null,
+      user_id: user.id
+    };
+
+    // Fetch artwork details for local display
+    const { data: artwork } = await supabase.from('artworks').select('*').eq('id', artworkId).eq('is_deleted', false).maybeSingle();
+    if (!artwork) {
+      showToast('Artwork not found', 'error');
       return;
     }
 
-    // MOCK USER HANDLER
-    if (isMockUser) {
-      const newItem = {
-        id: `mock-item-${Date.now()}`,
-        artwork_id: artworkId,
-        quantity: 1,
-        size: options?.size || null,
-        material: options?.material || null,
-        frame: options?.frame || null,
-        price: options?.price || null,
-        user_id: user.id
-      };
+    const { data: artist } = await supabase.from('artists').select('name, slug').eq('id', (artwork as any).artist_id).single();
 
-      // Fetch artwork details for local display
-      const { data: artwork } = await supabase.from('artworks').select('*').eq('id', artworkId).single();
-      if (!artwork) {
-        showToast('Artwork not found', 'error');
-        return;
-      }
+    const fullItem = {
+      ...newItem,
+      artwork: { ...(artwork as any), artists: { name: (artist as any)?.name || 'Unknown', slug: (artist as any)?.slug || '' } }
+    };
 
-      const { data: artist } = await supabase.from('artists').select('name, slug').eq('id', (artwork as any).artist_id).single();
+    const updatedCart = [...cartItems, fullItem as any];
+    setCartItems(updatedCart);
+    localStorage.setItem('sanatsite_mock_cart', JSON.stringify(updatedCart));
+    showToast('Added to cart (Admin Mode)', 'success');
+    return;
+  }
 
-      const fullItem = {
-        ...newItem,
-        artwork: { ...(artwork as any), artists: { name: (artist as any)?.name || 'Unknown', slug: (artist as any)?.slug || '' } }
-      };
+  // REAL DB HANDLER
+  console.log('Adding to cart:', artworkId, options);
 
-      const updatedCart = [...cartItems, fullItem as any];
-      setCartItems(updatedCart);
-      localStorage.setItem('sanatsite_mock_cart', JSON.stringify(updatedCart));
-      showToast('Added to cart (Admin Mode)', 'success');
-      return;
-    }
+  // Check if item with same options already exists
+  const existingItem = (cartItems as any[]).find(item =>
+    item.artwork_id === artworkId &&
+    item.size === (options?.size || null) &&
+    item.material === (options?.material || null) &&
+    item.frame === (options?.frame || null)
+  );
 
-    // REAL DB HANDLER
-    console.log('Adding to cart:', artworkId, options);
-
-    // Check if item with same options already exists
-    const existingItem = (cartItems as any[]).find(item =>
-      item.artwork_id === artworkId &&
-      item.size === (options?.size || null) &&
-      item.material === (options?.material || null) &&
-      item.frame === (options?.frame || null)
-    );
-
-    if (existingItem) {
-      const { error } = await (supabase
-        .from('cart_items' as any) as any)
-        .update({ quantity: existingItem.quantity + 1 })
-        .eq('id', existingItem.id);
-
-      if (!error) {
-        showToast('Quantity updated in cart', 'success');
-        await loadCart();
-      } else {
-        console.error('Error updating cart quantity:', error);
-        showToast('Failed to update cart', 'error');
-      }
-      return;
-    }
-
+  if (existingItem) {
     const { error } = await (supabase
       .from('cart_items' as any) as any)
-      .insert({
-        user_id: user.id,
-        artwork_id: artworkId,
-        quantity: 1,
-        size: options?.size || null,
-        material: options?.material || null,
-        frame: options?.frame || null,
-        price: options?.price || null
-      });
+      .update({ quantity: existingItem.quantity + 1 })
+      .eq('id', existingItem.id);
 
     if (!error) {
-      console.log('Successfully added to cart');
-      showToast('Added to cart successfully', 'success');
+      showToast('Quantity updated in cart', 'success');
       await loadCart();
     } else {
-      console.error('Error adding to cart:', error);
-      showToast(`Error adding to cart: ${error.message}`, 'error');
+      console.error('Error updating cart quantity:', error);
+      showToast('Failed to update cart', 'error');
     }
-  };
+    return;
+  }
 
-  const removeFromCart = async (cartItemId: string) => {
-    if (isMockUser) {
-      const updatedCart = cartItems.filter(item => item.id !== cartItemId);
-      setCartItems(updatedCart);
-      localStorage.setItem('sanatsite_mock_cart', JSON.stringify(updatedCart));
-      showToast('Item removed (Admin Mode)', 'success');
-      return;
-    }
+  const { error } = await (supabase
+    .from('cart_items' as any) as any)
+    .insert({
+      user_id: user.id,
+      artwork_id: artworkId,
+      quantity: 1,
+      size: options?.size || null,
+      material: options?.material || null,
+      frame: options?.frame || null,
+      price: options?.price || null
+    });
 
-    console.log('Removing from cart:', cartItemId);
+  if (!error) {
+    console.log('Successfully added to cart');
+    showToast('Added to cart successfully', 'success');
+    await loadCart();
+  } else {
+    console.error('Error adding to cart:', error);
+    showToast(`Error adding to cart: ${error.message}`, 'error');
+  }
+};
 
-    // Optimistic update
-    const previousItems = cartItems;
-    setCartItems(cartItems.filter(item => item.id !== cartItemId));
+const removeFromCart = async (cartItemId: string) => {
+  if (isMockUser) {
+    const updatedCart = cartItems.filter(item => item.id !== cartItemId);
+    setCartItems(updatedCart);
+    localStorage.setItem('sanatsite_mock_cart', JSON.stringify(updatedCart));
+    showToast('Item removed (Admin Mode)', 'success');
+    return;
+  }
 
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('id', cartItemId);
+  console.log('Removing from cart:', cartItemId);
 
-    if (!error) {
-      showToast('Item removed from cart', 'success');
-    } else {
-      console.error('Error removing from cart:', error);
-      setCartItems(previousItems);
-      showToast('Failed to remove item', 'error');
-    }
-  };
+  // Optimistic update
+  const previousItems = cartItems;
+  setCartItems(cartItems.filter(item => item.id !== cartItemId));
 
-  const clearCart = async () => {
-    if (!user) return;
+  const { error } = await supabase
+    .from('cart_items')
+    .delete()
+    .eq('id', cartItemId);
 
-    if (isMockUser) {
-      setCartItems([]);
-      localStorage.removeItem('sanatsite_mock_cart');
-      return;
-    }
+  if (!error) {
+    showToast('Item removed from cart', 'success');
+  } else {
+    console.error('Error removing from cart:', error);
+    setCartItems(previousItems);
+    showToast('Failed to remove item', 'error');
+  }
+};
 
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('user_id', user.id);
+const clearCart = async () => {
+  if (!user) return;
 
-    if (!error) {
-      setCartItems([]);
-    }
-  };
+  if (isMockUser) {
+    setCartItems([]);
+    localStorage.removeItem('sanatsite_mock_cart');
+    return;
+  }
 
-  return (
-    <CartContext.Provider value={{
-      cartItems,
-      cartCount: cartItems.length,
-      addToCart,
-      removeFromCart,
-      clearCart,
-      loading
-    }}>
-      {children}
-    </CartContext.Provider>
-  );
+  const { error } = await supabase
+    .from('cart_items')
+    .delete()
+    .eq('user_id', user.id);
+
+  if (!error) {
+    setCartItems([]);
+  }
+};
+
+return (
+  <CartContext.Provider value={{
+    cartItems,
+    cartCount: cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0),
+    addToCart,
+    removeFromCart,
+    clearCart,
+    loading
+  }}>
+    {children}
+  </CartContext.Provider>
+);
 }
 
 export function useCart() {

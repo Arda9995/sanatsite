@@ -19,7 +19,7 @@ export default function AdminPanel() {
   const [applications, setApplications] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [rates, setRates] = useState({ EUR: '1.0', USD: '1.08', GBP: '0.86', TRY: '37.50' });
+  const [rates, setRates] = useState({ USD: '1.0', EUR: '0.92', GBP: '0.79', TRY: '34.50' });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -49,10 +49,10 @@ export default function AdminPanel() {
 
   useEffect(() => {
     setRates({
-      USD: exchangeRates.USD?.toString() || '1.08',
-      EUR: exchangeRates.EUR?.toString() || '1.0',
-      GBP: exchangeRates.GBP?.toString() || '0.86',
-      TRY: exchangeRates.TRY?.toString() || '37.50',
+      USD: exchangeRates.USD?.toString() || '1.0',
+      EUR: exchangeRates.EUR?.toString() || '0.92',
+      GBP: exchangeRates.GBP?.toString() || '0.79',
+      TRY: exchangeRates.TRY?.toString() || '34.50',
     });
   }, [exchangeRates]);
 
@@ -60,7 +60,7 @@ export default function AdminPanel() {
     setLoadingData(true);
 
     const [artworksRes, artistsRes, categoriesRes, applicationsRes, submissionsRes] = await Promise.all([
-      (supabase.from('artworks' as any) as any).select('*, artists(name, slug), categories(name)').eq('is_deleted', false).order('created_at', { ascending: false }),
+      (supabase.from('artworks' as any) as any).select('*, artists(name, slug), categories(name)').order('created_at', { ascending: false }),
       (supabase.from('artists' as any) as any).select('*').order('name'),
       (supabase.from('categories' as any) as any).select('id, name').order('name'),
       (supabase.from('artist_applications' as any) as any).select('*').order('created_at', { ascending: false }),
@@ -190,9 +190,9 @@ export default function AdminPanel() {
     if (!confirm(t('deleteArtworkConfirm'))) return;
 
     try {
-      const { error } = await (supabase
-        .from('artworks' as any) as any)
-        .update({ is_deleted: true })
+      const { error } = await supabase
+        .from('artworks' as any)
+        .delete()
         .eq('id', id);
 
       if (error) throw error;
@@ -262,9 +262,9 @@ export default function AdminPanel() {
     if (!confirm(t('deleteArtistConfirm'))) return;
     try {
       // Delete related artworks first
-      const { error: artworksError } = await (supabase
-        .from('artworks' as any) as any)
-        .update({ is_deleted: true })
+      const { error: artworksError } = await supabase
+        .from('artworks' as any)
+        .delete()
         .eq('artist_id', id);
 
       if (artworksError) console.warn('Error deleting artworks:', artworksError);
@@ -278,28 +278,12 @@ export default function AdminPanel() {
       if (submissionsError) console.warn('Error deleting submissions:', submissionsError);
 
       // Finally delete the artist
-      const { data: artistData } = await (supabase
-        .from('artists' as any) as any)
-        .select('user_id')
-        .eq('id', id)
-        .single();
-
-      const userId = artistData?.user_id;
-
       const { error } = await supabase
         .from('artists' as any)
         .delete()
         .eq('id', id);
 
       if (error) throw error;
-
-      // Also delete related applications if they exist
-      if (userId) {
-        await (supabase
-          .from('artist_applications' as any) as any)
-          .delete()
-          .eq('user_id', userId);
-      }
 
       setMessage(t('artistDeleted'));
       await loadData();
@@ -480,13 +464,13 @@ export default function AdminPanel() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('eurRateLabel')}
+                      {t('usdRateLabel')}
                     </label>
                     <input
                       type="number"
                       step="0.01"
-                      value={rates.EUR}
-                      onChange={(e) => setRates({ ...rates, EUR: e.target.value })}
+                      value={rates.USD}
+                      onChange={(e) => setRates({ ...rates, USD: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       disabled
                     />
@@ -495,16 +479,16 @@ export default function AdminPanel() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('usdRateLabel')}
+                      EUR Rate (€)
                     </label>
                     <input
                       type="number"
                       step="0.0001"
-                      value={rates.USD}
-                      onChange={(e) => setRates({ ...rates, USD: e.target.value })}
+                      value={rates.EUR}
+                      onChange={(e) => setRates({ ...rates, EUR: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
-                    <p className="text-sm text-gray-500 mt-1">1 EUR = {rates.USD} USD</p>
+                    <p className="text-sm text-gray-500 mt-1">1 USD = {rates.EUR} EUR</p>
                   </div>
 
                   <div>
@@ -518,7 +502,7 @@ export default function AdminPanel() {
                       onChange={(e) => setRates({ ...rates, GBP: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
-                    <p className="text-sm text-gray-500 mt-1">1 EUR = {rates.GBP} GBP</p>
+                    <p className="text-sm text-gray-500 mt-1">1 USD = {rates.GBP} GBP</p>
                   </div>
 
                   <div>
@@ -532,7 +516,7 @@ export default function AdminPanel() {
                       onChange={(e) => setRates({ ...rates, TRY: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
-                    <p className="text-sm text-gray-500 mt-1">1 EUR = {rates.TRY} TRY</p>
+                    <p className="text-sm text-gray-500 mt-1">1 USD = {rates.TRY} TRY</p>
                   </div>
                 </div>
 

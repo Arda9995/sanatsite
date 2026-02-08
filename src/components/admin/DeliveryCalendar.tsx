@@ -101,25 +101,66 @@ export default function DeliveryCalendar({ }: DeliveryCalendarProps) {
         }
     };
 
+    const calculateEstimate = (orderCreatedAt: string) => {
+        const orderDate = new Date(orderCreatedAt);
+        const standardDays = deliverySettings.standard_delivery_days;
+        const penaltyDays = deliverySettings.busy_day_penalty_days;
+
+        let deliveryDate = new Date(orderDate);
+        deliveryDate.setDate(deliveryDate.getDate() + standardDays);
+
+        let busyDayCount = 0;
+        const currentDate = new Date(orderDate);
+        currentDate.setDate(currentDate.getDate() + 1);
+
+        while (currentDate <= deliveryDate) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            if (busyDays.has(dateStr)) {
+                busyDayCount++;
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        if (busyDayCount > 0) {
+            deliveryDate.setDate(deliveryDate.getDate() + (busyDayCount * penaltyDays));
+        }
+
+        return deliveryDate;
+    };
+
     const getOrdersForDate = (date: Date) => {
+        const d_year = date.getFullYear();
+        const d_month = date.getMonth();
+        const d_date = date.getDate();
+
         return orders.filter(order => {
             const orderDate = new Date(order.created_at);
             return (
-                orderDate.getDate() === date.getDate() &&
-                orderDate.getMonth() === date.getMonth() &&
-                orderDate.getFullYear() === date.getFullYear()
+                orderDate.getDate() === d_date &&
+                orderDate.getMonth() === d_month &&
+                orderDate.getFullYear() === d_year
             );
         });
     };
 
     const getDeliveryOrdersForDate = (date: Date) => {
+        const d_year = date.getFullYear();
+        const d_month = date.getMonth();
+        const d_date = date.getDate();
+
         return orders.filter(order => {
-            if (!order.delivery_date) return false;
-            const deliveryDate = new Date(order.delivery_date);
+            let targetDate: Date;
+            if (order.delivery_date) {
+                const [y, m, d] = order.delivery_date.split('T')[0].split('-').map(Number);
+                targetDate = new Date(y, m - 1, d);
+            } else {
+                targetDate = calculateEstimate(order.created_at);
+            }
+
             return (
-                deliveryDate.getDate() === date.getDate() &&
-                deliveryDate.getMonth() === date.getMonth() &&
-                deliveryDate.getFullYear() === date.getFullYear()
+                targetDate.getFullYear() === d_year &&
+                targetDate.getMonth() === d_month &&
+                targetDate.getDate() === d_date
             );
         });
     };
@@ -135,7 +176,7 @@ export default function DeliveryCalendar({ }: DeliveryCalendarProps) {
                         <div className="w-2 h-2 bg-blue-500 rounded-full" title={`${ordersOnDate.length} order(s)`} />
                     )}
                     {deliveriesOnDate.length > 0 && (
-                        <div className="w-2 h-2 bg-green-500 rounded-full" title={`${deliveriesOnDate.length} delivery(ies)`} />
+                        <div className="w-2 h-2 bg-orange-500 rounded-full" title={`${deliveriesOnDate.length} delivery(ies)`} />
                     )}
                 </div>
             );
@@ -163,7 +204,7 @@ export default function DeliveryCalendar({ }: DeliveryCalendarProps) {
 
     return (
         <div className="space-y-6">
-            {/* Settings Button */}
+            {/* Legend */}
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
@@ -171,8 +212,8 @@ export default function DeliveryCalendar({ }: DeliveryCalendarProps) {
                         <span className="text-sm text-gray-600">{t('orderPlaced')}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full" />
-                        <span className="text-sm text-gray-600">{t('deliveryScheduled')}</span>
+                        <div className="w-3 h-3 bg-orange-500 rounded-full" />
+                        <span className="text-sm text-gray-600">{t('deliveryLabel')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-red-500 rounded-full" />
@@ -223,7 +264,7 @@ export default function DeliveryCalendar({ }: DeliveryCalendarProps) {
                     `}</style>
                 </div>
 
-                {/* Orders for selected date */}
+                {/* Orders and Deliveries for selected date */}
                 <div className="bg-white p-4 rounded-lg shadow">
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                         <CalendarIcon className="w-5 h-5" />
@@ -259,15 +300,17 @@ export default function DeliveryCalendar({ }: DeliveryCalendarProps) {
                                                 <p className="text-sm text-gray-600">{order.total_amount} {order.currency}</p>
                                                 <p className="text-xs text-gray-500 mt-1">{t('statusLabel')}: {order.status}</p>
                                             </div>
-                                            {order.delivery_date ? (
-                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                                                    {t('deliveryLabel')}: {new Date(order.delivery_date).toLocaleDateString()}
-                                                </span>
-                                            ) : (
-                                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
-                                                    {t('noDeliveryDate')}
-                                                </span>
-                                            )}
+                                            <div className="text-right">
+                                                {order.delivery_date ? (
+                                                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                                                        {t('deliveryLabel')}: {new Date(order.delivery_date).toLocaleDateString()}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                                                        {t('estimatedDelivery')}: {calculateEstimate(order.created_at).toLocaleDateString()}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -275,27 +318,33 @@ export default function DeliveryCalendar({ }: DeliveryCalendarProps) {
                         </div>
                     )}
 
-                    {/* Deliveries scheduled for this date */}
+                    {/* Deliveries on this date */}
                     {deliveriesOnSelectedDate.length > 0 && (
                         <div>
                             <h4 className="text-sm font-medium text-gray-700 mb-2">{t('scheduledDeliveries')} ({deliveriesOnSelectedDate.length})</h4>
                             <div className="space-y-2">
-                                {deliveriesOnSelectedDate.map(order => (
-                                    <div
-                                        key={order.id}
-                                        className="p-3 bg-green-50 border border-green-200 rounded-lg"
-                                    >
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-medium text-gray-900">Order #{order.id.slice(0, 8)}</p>
-                                                <p className="text-sm text-gray-600">{order.total_amount} {order.currency}</p>
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    {t('orderedLabel')}: {new Date(order.created_at).toLocaleDateString()}
-                                                </p>
+                                {deliveriesOnSelectedDate.map(order => {
+                                    const isEstimated = !order.delivery_date;
+                                    return (
+                                        <div
+                                            key={order.id}
+                                            className={`p-3 border rounded-lg ${isEstimated ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="font-medium text-gray-900">Order #{order.id.slice(0, 8)}</p>
+                                                    <p className="text-sm text-gray-600">{order.total_amount} {order.currency}</p>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        {t('orderedLabel')}: {new Date(order.created_at).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                <span className={`text-xs px-2 py-1 rounded text-white ${isEstimated ? 'bg-orange-600' : 'bg-green-600'}`}>
+                                                    {isEstimated ? t('estimatedDelivery') : t('confirmedDelivery')}
+                                                </span>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

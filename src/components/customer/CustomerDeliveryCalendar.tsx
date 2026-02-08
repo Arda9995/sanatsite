@@ -69,14 +69,52 @@ export default function CustomerDeliveryCalendar({ userId }: CustomerDeliveryCal
         setDeliverySettings(settings);
     };
 
+    const calculateEstimate = (orderCreatedAt: string) => {
+        const orderDate = new Date(orderCreatedAt);
+        const standardDays = deliverySettings.standard_delivery_days;
+        const penaltyDays = deliverySettings.busy_day_penalty_days;
+
+        let deliveryDate = new Date(orderDate);
+        deliveryDate.setDate(deliveryDate.getDate() + standardDays);
+
+        let busyDayCount = 0;
+        const currentDate = new Date(orderDate);
+        currentDate.setDate(currentDate.getDate() + 1);
+
+        while (currentDate <= deliveryDate) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            if (busyDays.has(dateStr)) {
+                busyDayCount++;
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        if (busyDayCount > 0) {
+            deliveryDate.setDate(deliveryDate.getDate() + (busyDayCount * penaltyDays));
+        }
+
+        return deliveryDate;
+    };
+
     const getDeliveryOrdersForDate = (date: Date) => {
+        const dYear = date.getFullYear();
+        const dMonth = date.getMonth();
+        const dDate = date.getDate();
+
         return orders.filter(order => {
-            if (!order.delivery_date) return false;
-            const deliveryDate = new Date(order.delivery_date);
+            let targetDate: Date;
+            if (order.delivery_date) {
+                // Confirm date is ISO string, parse manually to avoid timezone shift for date-only values
+                const [y, m, d] = order.delivery_date.split('T')[0].split('-').map(Number);
+                targetDate = new Date(y, m - 1, d);
+            } else {
+                targetDate = calculateEstimate(order.created_at);
+            }
+
             return (
-                deliveryDate.getDate() === date.getDate() &&
-                deliveryDate.getMonth() === date.getMonth() &&
-                deliveryDate.getFullYear() === date.getFullYear()
+                targetDate.getFullYear() === dYear &&
+                targetDate.getMonth() === dMonth &&
+                targetDate.getDate() === dDate
             );
         });
     };
@@ -88,7 +126,10 @@ export default function CustomerDeliveryCalendar({ userId }: CustomerDeliveryCal
             return (
                 <div className="flex flex-col items-center gap-1 mt-1">
                     {deliveriesOnDate.length > 0 && (
-                        <div className="w-2 h-2 bg-green-500 rounded-full" title={`${deliveriesOnDate.length} delivery(ies)`} />
+                        <div
+                            className={`w-2 h-2 rounded-full ${deliveriesOnDate.some(o => !o.delivery_date) ? 'bg-orange-400' : 'bg-green-500'}`}
+                            title={`${deliveriesOnDate.length} delivery(ies)`}
+                        />
                     )}
                 </div>
             );
@@ -140,8 +181,8 @@ export default function CustomerDeliveryCalendar({ userId }: CustomerDeliveryCal
     };
 
     const deliveriesOnSelectedDate = getDeliveryOrdersForDate(selectedDate);
-    const ordersWithDelivery = orders.filter(o => o.delivery_date);
-    const ordersWithoutDelivery = orders.filter(o => !o.delivery_date);
+    const ordersWithConfirmedDelivery = orders.filter(o => o.delivery_date);
+    const ordersWithEstimatedDelivery = orders.filter(o => !o.delivery_date);
 
     if (loading) {
         return <div className="text-center py-8">Loading your orders...</div>;
@@ -202,35 +243,39 @@ export default function CustomerDeliveryCalendar({ userId }: CustomerDeliveryCal
 
                     {deliveriesOnSelectedDate.length > 0 ? (
                         <div className="space-y-3">
-                            {deliveriesOnSelectedDate.map(order => (
-                                <div
-                                    key={order.id}
-                                    className="p-4 bg-green-50 border border-green-200 rounded-lg"
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <p className="font-medium text-gray-900">Order #{order.id.slice(0, 8)}</p>
-                                            <p className="text-sm text-gray-600">{order.total_amount} {order.currency}</p>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                Ordered: {new Date(order.created_at).toLocaleDateString()}
-                                            </p>
-                                        </div>
-                                        <span className="text-xs bg-green-600 text-white px-2 py-1 rounded">
-                                            Delivery Today
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            setSelectedOrder(order);
-                                            setRequestedDate(order.delivery_date || '');
-                                            setShowRequestForm(true);
-                                        }}
-                                        className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
+                            {deliveriesOnSelectedDate.map(order => {
+                                const isEstimated = !order.delivery_date;
+                                return (
+                                    <div
+                                        key={order.id}
+                                        className={`p-4 border rounded-lg ${isEstimated ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}
                                     >
-                                        Request Date Change
-                                    </button>
-                                </div>
-                            ))}
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <p className="font-medium text-gray-900">Order #{order.id.slice(0, 8)}</p>
+                                                <p className="text-sm text-gray-600">{order.total_amount} {order.currency}</p>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Ordered: {new Date(order.created_at).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                            <span className={`text-xs px-2 py-1 rounded text-white ${isEstimated ? 'bg-orange-600' : 'bg-green-600'}`}>
+                                                {isEstimated ? t('estimatedDelivery') : t('confirmedDelivery')}
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setSelectedOrder(order);
+                                                const targetDate = order.delivery_date || calculateEstimate(order.created_at).toISOString();
+                                                setRequestedDate(targetDate);
+                                                setShowRequestForm(true);
+                                            }}
+                                            className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
+                                        >
+                                            Request Date Change
+                                        </button>
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
                         <p className="text-gray-500 text-center py-8">{t('noDeliveriesScheduled')}</p>
@@ -242,14 +287,14 @@ export default function CustomerDeliveryCalendar({ userId }: CustomerDeliveryCal
             <div className="bg-white p-6 rounded-lg shadow">
                 <h3 className="text-lg font-semibold mb-4">Your Orders</h3>
 
-                {ordersWithDelivery.length > 0 && (
+                {ordersWithConfirmedDelivery.length > 0 && (
                     <div className="mb-6">
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">With Delivery Dates ({ordersWithDelivery.length})</h4>
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">{t('confirmedDelivery')} ({ordersWithConfirmedDelivery.length})</h4>
                         <div className="space-y-2">
-                            {ordersWithDelivery.map(order => (
+                            {ordersWithConfirmedDelivery.map((order: Order) => (
                                 <div
                                     key={order.id}
-                                    className="p-3 bg-gray-50 border border-gray-200 rounded-lg flex justify-between items-center"
+                                    className="p-3 bg-green-50 border border-green-200 rounded-lg flex justify-between items-center"
                                 >
                                     <div>
                                         <p className="font-medium text-gray-900">Order #{order.id.slice(0, 8)}</p>
@@ -276,22 +321,34 @@ export default function CustomerDeliveryCalendar({ userId }: CustomerDeliveryCal
                     </div>
                 )}
 
-                {ordersWithoutDelivery.length > 0 && (
+                {ordersWithEstimatedDelivery.length > 0 && (
                     <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">Pending Delivery Date ({ordersWithoutDelivery.length})</h4>
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">{t('estimatedDelivery')} ({ordersWithEstimatedDelivery.length})</h4>
                         <div className="space-y-2">
-                            {ordersWithoutDelivery.map(order => (
+                            {ordersWithEstimatedDelivery.map((order: Order) => (
                                 <div
                                     key={order.id}
-                                    className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex justify-between items-center"
+                                    className="p-3 bg-orange-50 border border-orange-200 rounded-lg flex justify-between items-center"
                                 >
                                     <div>
                                         <p className="font-medium text-gray-900">Order #{order.id.slice(0, 8)}</p>
                                         <p className="text-sm text-gray-600">{order.total_amount} {order.currency}</p>
                                     </div>
-                                    <span className="text-xs bg-yellow-600 text-white px-2 py-1 rounded">
-                                        Date not set
-                                    </span>
+                                    <div className="text-right">
+                                        <p className="text-sm font-medium text-orange-600">
+                                            {calculateEstimate(order.created_at).toLocaleDateString()}
+                                        </p>
+                                        <button
+                                            onClick={() => {
+                                                setSelectedOrder(order);
+                                                setRequestedDate(calculateEstimate(order.created_at).toISOString());
+                                                setShowRequestForm(true);
+                                            }}
+                                            className="text-xs text-orange-600 hover:text-orange-700 mt-1"
+                                        >
+                                            Request Change
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

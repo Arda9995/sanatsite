@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { supabase } from '../lib/supabase';
+import { getDeliverySettings } from '../lib/deliveryCalculator';
 import { CornerFrame, AbstractBrush, CirclePattern } from '../components/DecorativeElements';
 import { Package, Heart, Users, Bell, User, ShoppingBag, Check, Eye, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import CustomerDeliveryCalendar from '../components/customer/CustomerDeliveryCalendar';
@@ -24,6 +25,7 @@ interface Order {
     total_amount: number;
     currency: string;
     created_at: string;
+    delivery_date: string | null;
     payment_status: string;
 }
 
@@ -140,6 +142,31 @@ export default function CustomerDashboard() {
         }
     };
 
+    const [deliverySettings, setDeliverySettings] = useState({ standard_delivery_days: 3 });
+
+    useEffect(() => {
+        if (user) {
+            loadCustomerData();
+            loadOrders();
+            loadFavorites();
+            loadFollowedArtists();
+            loadNotifications();
+            loadSettings();
+        }
+    }, [user]);
+
+    const loadSettings = async () => {
+        const settings = await getDeliverySettings();
+        if (settings) setDeliverySettings(settings);
+    };
+
+    const calculateEstimate = (orderCreatedAt: string) => {
+        const orderDate = new Date(orderCreatedAt);
+        const deliveryDate = new Date(orderDate);
+        deliveryDate.setDate(deliveryDate.getDate() + (deliverySettings.standard_delivery_days || 3));
+        return deliveryDate;
+    };
+
     const loadOrders = async () => {
         const { data } = await supabase
             .from('orders')
@@ -174,8 +201,9 @@ export default function CustomerDashboard() {
             .order('created_at', { ascending: false });
 
         if (data) {
-            const validFavorites = (data as any[]).filter(f => f.artworks && !f.artworks.is_deleted);
-            setFavorites(validFavorites as any);
+            // Defensive filtering to ensure artwork exists and is not deleted
+            const validFavorites = (data as any[]).filter(f => f && f.artworks && !f.artworks.is_deleted);
+            setFavorites(validFavorites);
             setStats(prev => ({ ...prev, totalFavorites: validFavorites.length }));
         }
     };
@@ -196,8 +224,10 @@ export default function CustomerDashboard() {
             .order('created_at', { ascending: false });
 
         if (data) {
-            setFollowedArtists(data as any);
-            setStats(prev => ({ ...prev, followingCount: data.length }));
+            // Defensive filtering to ensure artist exists
+            const validFollows = (data as any[]).filter(f => f && f.artists);
+            setFollowedArtists(validFollows);
+            setStats(prev => ({ ...prev, followingCount: validFollows.length }));
         }
     };
 
@@ -467,14 +497,28 @@ export default function CustomerDashboard() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-sm">
-                                                    <span className="text-gray-600">{t('paymentStatus')}:</span>
-                                                    <span className={`font-medium ${order.payment_status === 'paid' ? 'text-green-600' :
-                                                        order.payment_status === 'failed' ? 'text-red-600' :
-                                                            'text-yellow-600'
-                                                        }`}>
-                                                        {t(order.payment_status)}
-                                                    </span>
+                                                <div className="flex flex-col gap-2 text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-gray-600">{t('paymentStatus')}:</span>
+                                                        <span className={`font-medium ${order.payment_status === 'paid' ? 'text-green-600' :
+                                                            order.payment_status === 'failed' ? 'text-red-600' :
+                                                                'text-yellow-600'
+                                                            }`}>
+                                                            {t(order.payment_status)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-gray-600">{t('deliveryLabel')}:</span>
+                                                        {order.delivery_date ? (
+                                                            <span className="text-green-600 font-medium">
+                                                                {new Date(order.delivery_date).toLocaleDateString()}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-orange-600 font-medium italic">
+                                                                {t('estimatedDelivery') || 'Estimated'}: {calculateEstimate(order.created_at).toLocaleDateString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -511,21 +555,21 @@ export default function CustomerDashboard() {
                                             <div key={fav.id} className="group relative bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                                                 <div className="aspect-square overflow-hidden">
                                                     <img
-                                                        src={fav.artworks.image_url}
-                                                        alt={fav.artworks.title}
+                                                        src={fav.artworks?.image_url}
+                                                        alt={fav.artworks?.title}
                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                     />
                                                 </div>
                                                 <div className="p-4">
-                                                    <h3 className="font-semibold text-gray-900 mb-1">{fav.artworks.title}</h3>
-                                                    <p className="text-sm text-gray-600 mb-2">{fav.artworks.artists?.name || t('unknownArtist')}</p>
+                                                    <h3 className="font-semibold text-gray-900 mb-1">{fav.artworks?.title}</h3>
+                                                    <p className="text-sm text-gray-600 mb-2">{fav.artworks?.artists?.name || t('unknownArtist')}</p>
                                                     <div className="flex items-center justify-between">
                                                         <span className="font-bold text-orange-600">
-                                                            {formatPrice(fav.artworks.price, fav.artworks.base_currency as any)}
+                                                            {formatPrice(fav.artworks?.price || 0, (fav.artworks?.base_currency as any) || 'EUR')}
                                                         </span>
                                                         <div className="flex gap-2">
                                                             <button
-                                                                onClick={() => navigate(`/artwork/${fav.artworks.id}`)}
+                                                                onClick={() => navigate(`/artwork/${fav.artworks?.id}`)}
                                                                 className="p-2 text-gray-600 hover:text-orange-600 transition-colors"
                                                                 title={t('viewArtwork')}
                                                             >
@@ -568,19 +612,19 @@ export default function CustomerDashboard() {
                                         {followedArtists.map((follow) => (
                                             <div key={follow.id} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-orange-300 transition-colors">
                                                 <img
-                                                    src={follow.artists.avatar_url || 'https://via.placeholder.com/80'}
-                                                    alt={follow.artists.name}
+                                                    src={follow.artists?.avatar_url || 'https://via.placeholder.com/80'}
+                                                    alt={follow.artists?.name}
                                                     className="w-16 h-16 rounded-full object-cover"
                                                 />
                                                 <div className="flex-1">
-                                                    <h3 className="font-semibold text-gray-900">{follow.artists.name}</h3>
+                                                    <h3 className="font-semibold text-gray-900">{follow.artists?.name}</h3>
                                                     <p className="text-sm text-gray-500">
                                                         {t('following')} {t('since')} {new Date(follow.created_at).toLocaleDateString()}
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <button
-                                                        onClick={() => navigate(`/${follow.artists.slug || follow.artists.id}`)}
+                                                        onClick={() => navigate(`/${follow.artists?.slug || follow.artists?.id}`)}
                                                         className="px-4 py-2 text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors"
                                                     >
                                                         {t('viewProfile')}

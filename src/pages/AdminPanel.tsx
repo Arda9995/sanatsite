@@ -495,7 +495,6 @@ export default function AdminPanel() {
                       value={rates.EUR}
                       onChange={(e) => setRates({ ...rates, EUR: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      disabled
                     />
                     <p className="text-sm text-gray-500 mt-1">{t('baseCurrencyDesc')}</p>
                   </div>

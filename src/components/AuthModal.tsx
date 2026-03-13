@@ -21,12 +21,12 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const { signIn, signUp } = useAuth();
   const { t } = useLanguage();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setError('');
 
     if (isSignUp && !acceptedAgreement) {
-      setError(t('acceptAgreementError'));
+      setShowAgreementModal(true);
       return;
     }
 
@@ -51,6 +51,21 @@ export default function AuthModal({ onClose }: AuthModalProps) {
       }
     }
     setLoading(false);
+  };
+
+  const handleAgree = async () => {
+    setAcceptedAgreement(true);
+    setShowAgreementModal(false);
+    // Explicitly call the signup logic after agreement
+    setLoading(true);
+    const { error } = await signUp(email, password);
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      onClose();
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+    }
   };
 
   return (
@@ -118,32 +133,6 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             </div>
           )}
 
-          {isSignUp && (
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="userAgreement"
-                checked={acceptedAgreement}
-                onChange={(e) => setAcceptedAgreement(e.target.checked)}
-                className="mt-1 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
-              />
-              <label htmlFor="userAgreement" className="text-sm text-gray-600 cursor-pointer">
-                {t('userAgreementAccept').split('{label}')[0]}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowAgreementModal(true);
-                  }}
-                  className="text-orange-600 hover:text-orange-700 font-medium mx-1 underline underline-offset-2"
-                >
-                  {t('userAgreementLabel')}
-                </button>
-                {t('userAgreementAccept').split('{label}')[1]}
-              </label>
-            </div>
-          )}
-
           <button
             type="submit"
             disabled={loading}
@@ -175,20 +164,29 @@ export default function AuthModal({ onClose }: AuthModalProps) {
               <X className="w-6 h-6" />
             </button>
             <h3 className="text-2xl font-bold mb-6 text-gray-900">{t('userAgreementLabel')}</h3>
-            <div className="prose prose-sm max-h-[60vh] overflow-y-auto pr-4">
+            <div className="prose prose-sm max-h-[60vh] overflow-y-auto pr-4 mb-8">
               <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
                 {t('userAgreementContent')}
               </p>
             </div>
-            <button
-              onClick={() => {
-                setAcceptedAgreement(true);
-                setShowAgreementModal(false);
-              }}
-              className="mt-8 w-full py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
-            >
-              {t('confirm')}
-            </button>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={() => {
+                  setShowAgreementModal(false);
+                  setAcceptedAgreement(false);
+                }}
+                className="flex-1 py-3 border-2 border-gray-200 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                {t('noIDisagree')}
+              </button>
+              <button
+                onClick={handleAgree}
+                className="flex-1 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
+              >
+                {t('yesIAgree')}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -243,6 +243,8 @@ const translations: Record<Language, Record<string, string>> = {
     userAgreementAccept: 'I accept the {label}',
     userAgreementContent: 'bu bir kullanıcı sözleşmesi',
     acceptAgreementError: 'Please accept the user agreement to continue.',
+    yesIAgree: 'Yes, I Agree',
+    noIDisagree: "No, I Don't Agree",
 
     // Artist Application
     joinCommunity: 'Join Our Artist Community',
@@ -743,6 +745,8 @@ const translations: Record<Language, Record<string, string>> = {
     userAgreementAccept: '{label}\'ni kabul ediyorum',
     userAgreementContent: 'bu bir kullanıcı sözleşmesi',
     acceptAgreementError: 'Devam etmek için lütfen kullanıcı sözleşmesini kabul edin.',
+    yesIAgree: 'Evet, Kabul Ediyorum',
+    noIDisagree: 'Hayır, Kabul Etmiyorum',
 
     // Artist Application
     joinCommunity: 'Sanatçı Topluluğumuza Katılın',

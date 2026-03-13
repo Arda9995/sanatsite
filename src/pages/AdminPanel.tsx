@@ -329,28 +329,6 @@ export default function AdminPanel() {
     }
   };
 
-  const handleFixArtistSlugs = async () => {
-    setSaving(true);
-    setMessage('');
-    let fixedCount = 0;
-    try {
-      for (const artist of artists) {
-        const expectedSlug = artist.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
-        if (!artist.slug || artist.slug !== expectedSlug) {
-          const { error } = await (supabase.from('artists' as any) as any)
-            .update({ slug: expectedSlug })
-            .eq('id', artist.id);
-          if (!error) fixedCount++;
-        }
-      }
-      setMessage(t('repairSlugsSuccess').replace('{count}', fixedCount.toString()));
-      await loadData();
-    } catch (error) {
-      setMessage(t('repairSlugsError'));
-      console.error(error);
-    }
-    setSaving(false);
-  };
 
   if (!isAdmin) {
     return (
@@ -494,33 +472,33 @@ export default function AdminPanel() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('usdRateLabel')}
+                      USD Rate ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={rates.USD}
+                      onChange={(e) => setRates({ ...rates, USD: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-blue-600 mt-1">
+                      {t('eurRateConversionDesc').replace('{rate}', rates.USD.toString()).replace('{currency}', 'USD')}
+                    </p></div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('eurRateLabel') || 'EUR Rate (€)'}
                     </label>
                     <input
                       type="number"
                       step="0.01"
-                      value={rates.USD}
-                      onChange={(e) => setRates({ ...rates, USD: e.target.value })}
+                      value={rates.EUR}
+                      onChange={(e) => setRates({ ...rates, EUR: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       disabled
                     />
                     <p className="text-sm text-gray-500 mt-1">{t('baseCurrencyDesc')}</p>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      EUR Rate (€)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={rates.EUR}
-                      onChange={(e) => setRates({ ...rates, EUR: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                    <p className="text-xs text-blue-600 mt-1">
-                      {t('usdRateConversionDesc').replace('{rate}', rates.EUR.toString()).replace('{currency}', 'EUR')}
-                    </p></div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -534,7 +512,7 @@ export default function AdminPanel() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                     <p className="text-xs text-blue-600 mt-1">
-                      {t('usdRateConversionDesc').replace('{rate}', rates.GBP.toString()).replace('{currency}', 'GBP')}
+                      {t('eurRateConversionDesc').replace('{rate}', rates.GBP.toString()).replace('{currency}', 'GBP')}
                     </p></div>
 
                   <div>
@@ -549,7 +527,7 @@ export default function AdminPanel() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                     <p className="text-xs text-blue-600 mt-1">
-                      {t('usdRateConversionDesc').replace('{rate}', rates.TRY.toString()).replace('{currency}', 'TRY')}
+                      {t('eurRateConversionDesc').replace('{rate}', rates.TRY.toString()).replace('{currency}', 'TRY')}
                     </p></div>
                 </div>
 
@@ -821,13 +799,6 @@ export default function AdminPanel() {
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold text-gray-900">{t('manageArtists')}</h2>
-                  <button
-                    onClick={handleFixArtistSlugs}
-                    disabled={saving}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
-                  >
-                    {saving ? t('repairing') : t('repairProfileLinks')}
-                  </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {artists.map((artist) => (

@@ -30,7 +30,7 @@ export default function HomePage() {
     // New category system - 4 main categories
     const HOMEPAGE_CATEGORIES = [
       { slug: 'open-edition-prints', label: 'open-edition-prints', image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80' },
-      { slug: 'photography', label: 'photography', image: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80' },
+      { slug: 'photography', label: 'photography', image: 'https://images.unsplash.com/photo-1554048612-b6a482bc67e5?auto=format&fit=crop&q=80' },
       { slug: 'digital-art', label: 'digital-art', image: 'https://images.unsplash.com/photo-1547891654-e66ed7ebb968?auto=format&fit=crop&q=80' },
     ];
 

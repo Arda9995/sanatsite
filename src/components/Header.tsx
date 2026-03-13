@@ -59,7 +59,7 @@ export default function Header() {
                 <Palette className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-500" />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-pink-500 via-orange-600 to-yellow-600 bg-clip-text text-transparent relative">
-                SanatSite
+                Cominudade
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 via-orange-600 to-yellow-600 group-hover:w-full transition-all duration-500"></span>
               </span>
             </Link>

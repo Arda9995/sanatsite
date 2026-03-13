@@ -23,10 +23,10 @@ interface Order {
 }
 
 interface DeliveryCalendarProps {
-    // No props needed - calendar is now only for managing busy days
+    onDateSet?: () => void;
 }
 
-export default function DeliveryCalendar({ }: DeliveryCalendarProps) {
+export default function DeliveryCalendar({ onDateSet }: DeliveryCalendarProps) {
     const { t } = useLanguage();
     const [orders, setOrders] = useState<Order[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());

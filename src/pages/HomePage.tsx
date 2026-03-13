@@ -30,7 +30,7 @@ export default function HomePage() {
     // New category system - 4 main categories
     const HOMEPAGE_CATEGORIES = [
       { slug: 'open-edition-prints', label: 'open-edition-prints', image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80' },
-      { slug: 'photography', label: 'photography', image: 'https://images.unsplash.com/photo-1554048612-b6a482bc67e5?auto=format&fit=crop&q=80' },
+      { slug: 'photography', label: 'photography', image: 'https://llhnirkpoqtqruuxbmek.supabase.co/storage/v1/object/public/images/golden_hour_peak.png' },
       { slug: 'digital-art', label: 'digital-art', image: 'https://images.unsplash.com/photo-1547891654-e66ed7ebb968?auto=format&fit=crop&q=80' },
     ];
 
@@ -56,16 +56,23 @@ export default function HomePage() {
       if (dbCat) {
         category = dbCat;
         // Fetch one artwork for this category
-        const { data: dbArtwork } = await supabase
+        let query = supabase
           .from('artworks')
           .select('*, artists(*), categories(*)')
           .eq('category_id', dbCat.id)
           .eq('is_available', true)
           .eq('is_deleted', false)
           .neq('image_url', '')
-          .not('image_url', 'is', null)
-          .limit(1)
-          .maybeSingle();
+          .not('image_url', 'is', null);
+
+        // Prioritize Golden Hour Peak for photography category
+        if (dbCat.slug === 'photography') {
+          query = query.order('title', { ascending: false }); // 'Golden Hour Peak' usually comes after others or we can use ilike
+        } else {
+          query = query.limit(1);
+        }
+
+        const { data: dbArtwork } = await query.maybeSingle();
 
         if (dbArtwork) {
           artwork = dbArtwork as ArtworkWithArtist;

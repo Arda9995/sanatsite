@@ -53,16 +53,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const verifyOtp = async (email: string, token: string) => {
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       email,
       token,
       type: 'signup'
     });
+    if (!error && data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+    }
     return { error };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Error during sign out:', err);
+    } finally {
+      // Force clear state even if API call fails (to fix 403 issues)
+      setUser(null);
+      setSession(null);
+    }
   };
 
   return (

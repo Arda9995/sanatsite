@@ -335,7 +335,41 @@ export default function Header() {
                   TRY (₺)
                 </button>
               </div>
-              {!user && (
+              {user ? (
+                <>
+                  <div className="border-t border-gray-200 pt-2 mt-2">
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                      {t('account')}
+                    </div>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setShowMobileMenu(false)}
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center"
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        {t('adminPanel')}
+                      </Link>
+                    )}
+                    <Link
+                      to="/orders"
+                      onClick={() => setShowMobileMenu(false)}
+                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                    >
+                      {t('myOrders')}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        signOut();
+                        setShowMobileMenu(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium"
+                    >
+                      {t('signOut')}
+                    </button>
+                  </div>
+                </>
+              ) : (
                 <button
                   onClick={() => {
                     setShowAuthModal(true);

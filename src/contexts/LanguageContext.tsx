@@ -239,6 +239,10 @@ const translations: Record<Language, Record<string, string>> = {
     signIn2: 'Sign In', // Changed from signIn to avoid conflict
     alreadyHaveAccount: 'Already have an account? Sign in',
     dontHaveAccount: "Don't have an account? Sign up",
+    userAgreementLabel: 'User Agreement',
+    userAgreementAccept: 'I accept the {label}',
+    userAgreementContent: 'bu bir kullanıcı sözleşmesi',
+    acceptAgreementError: 'Please accept the user agreement to continue.',
 
     // Artist Application
     joinCommunity: 'Join Our Artist Community',
@@ -284,6 +288,7 @@ const translations: Record<Language, Record<string, string>> = {
     unknownArtwork: 'Unknown Artwork',
     unknownArtist: 'Unknown Artist',
     failedToCompleteOrder: 'Failed to complete order',
+    confirm: 'Confirm',
     switchLanguage: 'Switch to English',
     backToProjects: 'Back to Projects',
     backToDashboard: 'Back to Dashboard',
@@ -734,6 +739,10 @@ const translations: Record<Language, Record<string, string>> = {
     signIn2: 'Giriş Yap',
     alreadyHaveAccount: 'Zaten bir hesabınız var mı? Giriş yapın',
     dontHaveAccount: 'Hesabınız yok mu? Kayıt olun',
+    userAgreementLabel: 'Kullanıcı Sözleşmesi',
+    userAgreementAccept: '{label}\'ni kabul ediyorum',
+    userAgreementContent: 'bu bir kullanıcı sözleşmesi',
+    acceptAgreementError: 'Devam etmek için lütfen kullanıcı sözleşmesini kabul edin.',
 
     // Artist Application
     joinCommunity: 'Sanatçı Topluluğumuza Katılın',
@@ -799,6 +808,7 @@ const translations: Record<Language, Record<string, string>> = {
     reject: 'Reddet',
     error: 'Hata',
     success: 'Başarılı',
+    confirm: 'Onayla',
     switchToTurkish: 'Türkçe\'ye Geç',
     switchToEnglish: 'İngilizce\'ye Geç',
 

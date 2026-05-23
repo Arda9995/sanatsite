@@ -39,6 +39,8 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     if (error) {
       if (error.message.includes('Email not confirmed')) {
         setError(t('emailNotVerified'));
+      } else if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already exists')) {
+        setError(t('emailAlreadyExists'));
       } else {
         setError(error.message);
       }
@@ -54,17 +56,29 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   };
 
   const handleAgree = async () => {
+    if (loading) return;
     setAcceptedAgreement(true);
     setShowAgreementModal(false);
-    // Explicitly call the signup logic after agreement
+
     setLoading(true);
-    const { error } = await signUp(email, password);
-    if (error) {
-      setError(error.message);
+    setError('');
+
+    try {
+      const { error } = await signUp(email, password);
+      if (error) {
+        if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already exists')) {
+          setError(t('emailAlreadyExists'));
+        } else {
+          setError(error.message);
+        }
+        setLoading(false);
+      } else {
+        onClose();
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
       setLoading(false);
-    } else {
-      onClose();
-      navigate(`/verify-email?email=${encodeURIComponent(email)}`);
     }
   };
 

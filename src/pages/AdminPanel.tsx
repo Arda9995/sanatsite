@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Package, ArrowLeft, Users, ClipboardList, Camera, Check, X, Image as ImageIcon, Calendar as CalendarIcon, Inbox } from 'lucide-react';
+import { TrendingUp, Package, ArrowLeft, Users, ClipboardList, Camera, Check, X, Image as ImageIcon, Calendar as CalendarIcon, Inbox, ShoppingBag, ShieldAlert, ExternalLink, Percent, Plus } from 'lucide-react';
+import AdminOrdersTable from '../components/admin/AdminOrdersTable';
+import AdminBlacklist from '../components/admin/AdminBlacklist';
+import AdminMetrics from '../components/admin/AdminMetrics';
 import { useAdmin } from '../contexts/AdminContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -25,8 +28,9 @@ export default function AdminPanel() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'rates' | 'artworks' | 'applications' | 'artists' | 'submissions' | 'delivery' | 'requests'>('rates');
+  const [activeTab, setActiveTab] = useState<'rates' | 'artworks' | 'applications' | 'artists' | 'submissions' | 'delivery' | 'requests' | 'orders' | 'blacklist' | 'metrics'>('rates');
   const [deliveryRequestsCount, setDeliveryRequestsCount] = useState(0);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
 
   const [artworkForm, setArtworkForm] = useState({
     title: '',
@@ -40,6 +44,7 @@ export default function AdminPanel() {
     year: '',
     medium: '',
     orientation: 'horizontal',
+    metrics: [] as { name: string, value: string }[]
   });
 
   const [editingArtwork, setEditingArtwork] = useState<string | null>(null);
@@ -62,14 +67,16 @@ export default function AdminPanel() {
   const loadData = async () => {
     setLoadingData(true);
 
-    const [artworksRes, artistsRes, categoriesRes, applicationsRes, submissionsRes, requestsRes] = await Promise.all([
+    const [artworksRes, artistsRes, categoriesRes, applicationsRes, submissionsRes, requestsRes, ordersRes] = await Promise.all([
       (supabase.from('artworks' as any) as any).select('*, artists(name, slug), categories(name)').order('created_at', { ascending: false }),
       (supabase.from('artists' as any) as any).select('*').order('name'),
       (supabase.from('categories' as any) as any).select('id, name').order('name'),
       (supabase.from('artist_applications' as any) as any).select('*').order('created_at', { ascending: false }),
       (supabase.from('artwork_submissions' as any) as any).select('*, artists(name)').order('created_at', { ascending: false }),
       supabase.from('delivery_change_requests').select('*').eq('status', 'pending'),
-    ]);
+      supabase.from('orders').select('id').eq('is_viewed_by_admin', false),
+      (supabase.from('artworks' as any) as any).select('*, artists(name, slug), categories(name), artwork_metrics(*)').order('created_at', { ascending: false }),
+    ]) as any[];
 
     if (artworksRes.data) setArtworks(artworksRes.data);
     if (artistsRes.data) setArtists(artistsRes.data);
@@ -77,6 +84,7 @@ export default function AdminPanel() {
     if ((applicationsRes as any).data) setApplications((applicationsRes as any).data);
     if ((submissionsRes as any).data) setSubmissions((submissionsRes as any).data);
     if (requestsRes.data) setDeliveryRequestsCount(requestsRes.data.length);
+    if (ordersRes.data) setNewOrdersCount(ordersRes.data.length);
 
     setLoadingData(false);
   };
@@ -140,14 +148,43 @@ export default function AdminPanel() {
           .eq('id', editingArtwork);
 
         if (error) throw error;
-        setMessage(t('artworkUpdated'));
       } else {
-        const { error } = await (supabase
+        const { data, error } = await (supabase
           .from('artworks' as any) as any)
-          .insert([artworkData]);
+          .insert([artworkData])
+          .select();
 
         if (error) throw error;
-        setMessage(t('artworkCreated'));
+        
+        const artworkId = (data as any)?.[0]?.id;
+        
+        if (artworkId) {
+            // Insert new metrics for NEW artwork
+            if (artworkForm.metrics.length > 0) {
+                const metricData = artworkForm.metrics.map(m => ({
+                    artwork_id: artworkId,
+                    metric_name: m.name,
+                    metric_value: m.value
+                }));
+                const { error: metricError } = await (supabase.from('artwork_metrics' as any) as any).insert(metricData);
+                if (metricError) throw metricError;
+            }
+        }
+      }
+
+      if (editingArtwork) {
+          // Update metrics for EXISTING artwork
+          await (supabase.from('artwork_metrics' as any) as any).delete().eq('artwork_id', editingArtwork);
+          
+          if (artworkForm.metrics.length > 0) {
+              const metricData = artworkForm.metrics.map(m => ({
+                  artwork_id: editingArtwork,
+                  metric_name: m.name,
+                  metric_value: m.value
+              }));
+              const { error: metricError } = await (supabase.from('artwork_metrics' as any) as any).insert(metricData);
+              if (metricError) throw metricError;
+          }
       }
 
       setArtworkForm({
@@ -162,6 +199,7 @@ export default function AdminPanel() {
         year: '',
         medium: '',
         orientation: 'horizontal',
+        metrics: [],
       });
       setEditingArtwork(null);
       await loadData();
@@ -186,6 +224,7 @@ export default function AdminPanel() {
       year: artwork.year?.toString() || '',
       medium: artwork.medium || '',
       orientation: artwork.orientation || 'horizontal',
+      metrics: artwork.artwork_metrics?.map((m: any) => ({ name: m.metric_name, value: m.metric_value })) || [],
     });
     setEditingArtwork(artwork.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -458,6 +497,41 @@ export default function AdminPanel() {
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab('orders')}
+                className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'orders'
+                  ? 'border-b-2 border-orange-600 text-orange-600 bg-orange-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+              >
+                <ShoppingBag className="w-5 h-5 inline mr-2" />
+                {t('orders')}
+                {newOrdersCount > 0 && (
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-orange-600 text-white rounded-full">
+                    {newOrdersCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('blacklist')}
+                className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'blacklist'
+                  ? 'border-b-2 border-orange-600 text-orange-600 bg-orange-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+              >
+                <ShieldAlert className="w-5 h-5 inline mr-2" />
+                {t('blacklist')}
+              </button>
+              <button
+                onClick={() => setActiveTab('metrics')}
+                className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'metrics'
+                  ? 'border-b-2 border-orange-600 text-orange-600 bg-orange-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+              >
+                <Percent className="w-5 h-5 inline mr-2" />
+                {t('metrics') || 'Metrics'}
+              </button>
             </div>
           </div>
 
@@ -720,6 +794,58 @@ export default function AdminPanel() {
                         rows={3}
                       />
                     </div>
+
+                    <div className="md:col-span-2 border-t border-gray-200 pt-6 mt-6">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-lg font-bold text-gray-900">{t('customMetrics') || 'Custom Metrics'}</h4>
+                        <button
+                          type="button"
+                          onClick={() => setArtworkForm({ ...artworkForm, metrics: [...artworkForm.metrics, { name: '', value: '' }] })}
+                          className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-200 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          {t('addMetric') || 'Add Metric'}
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {artworkForm.metrics.map((metric, index) => (
+                          <div key={index} className="flex gap-3">
+                            <input
+                              type="text"
+                              value={metric.name}
+                              placeholder={t('metricName') || 'Name'}
+                              onChange={(e) => {
+                                const newMetrics = [...artworkForm.metrics];
+                                newMetrics[index].name = e.target.value;
+                                setArtworkForm({ ...artworkForm, metrics: newMetrics });
+                              }}
+                              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                            />
+                            <input
+                              type="text"
+                              value={metric.value}
+                              placeholder={t('metricValue') || 'Value'}
+                              onChange={(e) => {
+                                const newMetrics = [...artworkForm.metrics];
+                                newMetrics[index].value = e.target.value;
+                                setArtworkForm({ ...artworkForm, metrics: newMetrics });
+                              }}
+                              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newMetrics = artworkForm.metrics.filter((_, i) => i !== index);
+                                setArtworkForm({ ...artworkForm, metrics: newMetrics });
+                              }}
+                              className="p-2 text-red-400 hover:text-red-600"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex gap-4 mt-6">
@@ -747,6 +873,7 @@ export default function AdminPanel() {
                             year: '',
                             medium: '',
                             orientation: 'horizontal',
+                            metrics: [],
                           });
                         }}
                         className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
@@ -868,7 +995,17 @@ export default function AdminPanel() {
                               </span>
                             </div>
                             <p className="text-sm text-gray-600 mb-1"><strong>{t('email')}:</strong> {app.email}</p>
-                            <p className="text-sm text-gray-600 mb-4"><strong>{t('portfolio')}:</strong> <a href={app.portfolio_link} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">{app.portfolio_link}</a></p>
+                            <div className="space-y-1 mb-4">
+                              {app.portfolio_link && (
+                                <p className="text-sm text-gray-600"><strong>{t('portfolio')}:</strong> <a href={app.portfolio_link} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">{app.portfolio_link}</a></p>
+                              )}
+                              {app.portfolio_file_url && (
+                                <p className="text-sm text-gray-600"><strong>{t('portfolioFile')}:</strong> <a href={app.portfolio_file_url} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline font-medium flex items-center gap-1 inline-flex">
+                                  <ExternalLink className="w-4 h-4" />
+                                  {t('viewFile')}
+                                </a></p>
+                              )}
+                            </div>
                             {app.photo_url && (
                               <p className="text-xs text-gray-400 mb-4 truncate max-w-md"><strong>{t('photoURL')}:</strong> {app.photo_url}</p>
                             )}
@@ -986,6 +1123,15 @@ export default function AdminPanel() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('deliveryChangeRequests')}</h2>
                 <DeliveryRequestsInbox onRequestHandled={() => loadData()} />
               </div>
+            )}
+            {activeTab === 'orders' && (
+              <AdminOrdersTable />
+            )}
+            {activeTab === 'blacklist' && (
+              <AdminBlacklist />
+            )}
+            {activeTab === 'metrics' && (
+              <AdminMetrics />
             )}
           </div>
         </div>

@@ -10,6 +10,7 @@ import type { Artwork, Artist } from '../lib/database.types';
 
 interface ArtworkWithArtist extends Artwork {
   artists: Artist;
+  artwork_metrics?: any[];
 }
 
 interface ArtworkDetailPageProps {
@@ -46,7 +47,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
   const loadArtwork = async () => {
     const { data } = await supabase
       .from('artworks')
-      .select('*, artists(*)')
+      .select('*, artists(*), artwork_metrics(*)')
       .eq('id', artworkId as string)
       .eq('is_deleted', false)
       .maybeSingle();
@@ -276,6 +277,26 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
               </p>
               <p>{t('openEditionDescription')} {t('variousDimensions')}.</p>
             </div>
+
+            {artwork.artwork_metrics && artwork.artwork_metrics.length > 0 && (
+              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 border-b border-gray-100 pb-2 font-semibold">
+                  {t('customMetrics') || 'Specifications'}
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {artwork.artwork_metrics.map((metric: any) => (
+                    <div key={metric.id} className="space-y-1">
+                      <span className="block text-[10px] uppercase tracking-widest text-gray-400 font-bold">
+                        {metric.metric_name}
+                      </span>
+                      <span className="block text-sm font-medium text-gray-800">
+                        {metric.metric_value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Options */}
             <div className="space-y-6">

@@ -537,6 +537,14 @@ const translations: Record<Language, Record<string, string>> = {
     uploadPortfolio: 'Upload Portfolio',
     fileUploaded: 'File uploaded successfully',
     viewFile: 'View File',
+    customMetrics: 'Custom Metrics',
+    metricName: 'Metric Name',
+    metricValue: 'Metric Value',
+    addMetric: 'Add Metric',
+    addPredefinedMetric: 'Add Predefined Metric',
+    selectPredefined: 'Select Predefined...',
+    predefinedMetrics: 'Predefined Metrics',
+    metrics: 'Metrics',
   },
 
   tr: {
@@ -1013,6 +1021,14 @@ const translations: Record<Language, Record<string, string>> = {
     fileUploaded: 'Dosya başarıyla yüklendi',
     viewFile: 'Dosyayı Görüntüle',
     emailAlreadyExists: 'Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın.',
+    customMetrics: 'Özel Özellikler',
+    metricName: 'Özellik Adı',
+    metricValue: 'Özellik Değeri',
+    addMetric: 'Özellik Ekle',
+    addPredefinedMetric: 'Kayıtlı Özellik Ekle',
+    selectPredefined: 'Kayıtlı Özelliklerden Seç...',
+    predefinedMetrics: 'Kayıtlı Özellikler',
+    metrics: 'Özellikler',
   },
 };
 

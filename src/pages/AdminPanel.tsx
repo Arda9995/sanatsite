@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Package, ArrowLeft, Users, ClipboardList, Camera, Check, X, Image as ImageIcon, Calendar as CalendarIcon, Inbox, ShoppingBag, ShieldAlert, ExternalLink, Percent, Plus } from 'lucide-react';
+import { TrendingUp, Package, ArrowLeft, Users, ClipboardList, Camera, Check, X, Image as ImageIcon, Calendar as CalendarIcon, Inbox, ShoppingBag, ShieldAlert, ExternalLink, Ruler, Plus } from 'lucide-react';
 import AdminOrdersTable from '../components/admin/AdminOrdersTable';
 import AdminBlacklist from '../components/admin/AdminBlacklist';
 import AdminMetrics from '../components/admin/AdminMetrics';
@@ -23,6 +23,7 @@ export default function AdminPanel() {
   const [categories, setCategories] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
+  const [predefinedMetrics, setPredefinedMetrics] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [rates, setRates] = useState({ USD: '1.0', EUR: '0.92', GBP: '0.79', TRY: '34.50' });
   const [saving, setSaving] = useState(false);
@@ -67,15 +68,15 @@ export default function AdminPanel() {
   const loadData = async () => {
     setLoadingData(true);
 
-    const [artworksRes, artistsRes, categoriesRes, applicationsRes, submissionsRes, requestsRes, ordersRes] = await Promise.all([
-      (supabase.from('artworks' as any) as any).select('*, artists(name, slug), categories(name)').order('created_at', { ascending: false }),
+    const [artworksRes, artistsRes, categoriesRes, applicationsRes, submissionsRes, requestsRes, ordersRes, predefinedMetricsRes] = await Promise.all([
+      (supabase.from('artworks' as any) as any).select('*, artists(name, slug), categories(name), artwork_metrics(*)').order('created_at', { ascending: false }),
       (supabase.from('artists' as any) as any).select('*').order('name'),
       (supabase.from('categories' as any) as any).select('id, name').order('name'),
       (supabase.from('artist_applications' as any) as any).select('*').order('created_at', { ascending: false }),
       (supabase.from('artwork_submissions' as any) as any).select('*, artists(name)').order('created_at', { ascending: false }),
       supabase.from('delivery_change_requests').select('*').eq('status', 'pending'),
       supabase.from('orders').select('id').eq('is_viewed_by_admin', false),
-      (supabase.from('artworks' as any) as any).select('*, artists(name, slug), categories(name), artwork_metrics(*)').order('created_at', { ascending: false }),
+      (supabase.from('predefined_metrics' as any) as any).select('*').order('name'),
     ]) as any[];
 
     if (artworksRes.data) setArtworks(artworksRes.data);
@@ -85,6 +86,7 @@ export default function AdminPanel() {
     if ((submissionsRes as any).data) setSubmissions((submissionsRes as any).data);
     if (requestsRes.data) setDeliveryRequestsCount(requestsRes.data.length);
     if (ordersRes.data) setNewOrdersCount(ordersRes.data.length);
+    if (predefinedMetricsRes.data) setPredefinedMetrics(predefinedMetricsRes.data);
 
     setLoadingData(false);
   };
@@ -529,7 +531,7 @@ export default function AdminPanel() {
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
               >
-                <Percent className="w-5 h-5 inline mr-2" />
+                <Ruler className="w-5 h-5 inline mr-2" />
                 {t('metrics') || 'Metrics'}
               </button>
             </div>
@@ -796,16 +798,41 @@ export default function AdminPanel() {
                     </div>
 
                     <div className="md:col-span-2 border-t border-gray-200 pt-6 mt-6">
-                      <div className="flex justify-between items-center mb-4">
+                      <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
                         <h4 className="text-lg font-bold text-gray-900">{t('customMetrics') || 'Custom Metrics'}</h4>
-                        <button
-                          type="button"
-                          onClick={() => setArtworkForm({ ...artworkForm, metrics: [...artworkForm.metrics, { name: '', value: '' }] })}
-                          className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-200 transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                          {t('addMetric') || 'Add Metric'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {predefinedMetrics.length > 0 && (
+                            <select
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) return;
+                                const selected = predefinedMetrics.find(pm => pm.id === val);
+                                if (selected) {
+                                  setArtworkForm(prev => ({
+                                    ...prev,
+                                    metrics: [...prev.metrics, { name: selected.name, value: selected.value }]
+                                  }));
+                                }
+                                e.target.value = '';
+                              }}
+                              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 bg-white"
+                              defaultValue=""
+                            >
+                              <option value="" disabled>{t('selectPredefined') || 'Select Predefined...'}</option>
+                              {predefinedMetrics.map(pm => (
+                                <option key={pm.id} value={pm.id}>{pm.name}: {pm.value}</option>
+                              ))}
+                            </select>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setArtworkForm({ ...artworkForm, metrics: [...artworkForm.metrics, { name: '', value: '' }] })}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-200 transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                            {t('addMetric') || 'Add Metric'}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-3">
                         {artworkForm.metrics.map((metric, index) => (

@@ -1,31 +1,31 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { Plus, Trash2, Percent } from 'lucide-react';
+import { Plus, Trash2, Ruler } from 'lucide-react';
 
 export default function AdminMetrics() {
     const { t } = useLanguage();
-    const [rates, setRates] = useState<any[]>([]);
+    const [metrics, setMetrics] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [newMetric, setNewMetric] = useState({ name: '', multiplier: '1.0' });
+    const [newMetric, setNewMetric] = useState({ name: '', value: '' });
 
     useEffect(() => {
-        loadRates();
+        loadMetrics();
     }, []);
 
-    const loadRates = async () => {
+    const loadMetrics = async () => {
         setLoading(true);
         try {
             const { data, error } = await (supabase
-                .from('metric_rates' as any) as any)
+                .from('predefined_metrics' as any) as any)
                 .select('*')
-                .order('metric_name');
+                .order('name');
 
             if (error) throw error;
-            setRates(data || []);
+            setMetrics(data || []);
         } catch (err) {
-            console.error('Error loading metric rates:', err);
+            console.error('Error loading predefined metrics:', err);
         } finally {
             setLoading(false);
         }
@@ -33,54 +33,40 @@ export default function AdminMetrics() {
 
     const handleAddMetric = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMetric.name.trim()) return;
+        if (!newMetric.name.trim() || !newMetric.value.trim()) return;
 
         setSaving(true);
         try {
             const { error } = await (supabase
-                .from('metric_rates' as any) as any)
+                .from('predefined_metrics' as any) as any)
                 .insert([{
-                    metric_name: newMetric.name.trim(),
-                    multiplier: parseFloat(newMetric.multiplier)
+                    name: newMetric.name.trim(),
+                    value: newMetric.value.trim()
                 }]);
 
             if (error) throw error;
-            setNewMetric({ name: '', multiplier: '1.0' });
-            loadRates();
+            setNewMetric({ name: '', value: '' });
+            loadMetrics();
         } catch (err) {
-            console.error('Error adding metric:', err);
+            console.error('Error adding predefined metric:', err);
         } finally {
             setSaving(false);
         }
     };
 
-    const handleUpdateMultiplier = async (id: string, multiplier: string) => {
-        try {
-            const { error } = await (supabase
-                .from('metric_rates' as any) as any)
-                .update({ multiplier: parseFloat(multiplier), updated_at: new Date().toISOString() })
-                .eq('id', id);
-
-            if (error) throw error;
-            loadRates();
-        } catch (err) {
-            console.error('Error updating multiplier:', err);
-        }
-    };
-
     const handleDeleteMetric = async (id: string) => {
-        if (!confirm(t('deleteMetricConfirm') || 'Delete this metric rate?')) return;
+        if (!confirm(t('deleteMetricConfirm') || 'Delete this custom metric?')) return;
 
         try {
             const { error } = await (supabase
-                .from('metric_rates' as any) as any)
+                .from('predefined_metrics' as any) as any)
                 .delete()
                 .eq('id', id);
 
             if (error) throw error;
-            loadRates();
+            loadMetrics();
         } catch (err) {
-            console.error('Error deleting metric:', err);
+            console.error('Error deleting predefined metric:', err);
         }
     };
 
@@ -90,8 +76,8 @@ export default function AdminMetrics() {
         <div className="space-y-8">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <Percent className="w-6 h-6 text-orange-500" />
-                    {t('manageMetricRates') || 'Manage Metric Rates'}
+                    <Ruler className="w-6 h-6 text-orange-500" />
+                    {t('predefinedMetrics') || 'Predefined Metrics'}
                 </h3>
 
                 <form onSubmit={handleAddMetric} className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -102,18 +88,18 @@ export default function AdminMetrics() {
                             value={newMetric.name}
                             onChange={(e) => setNewMetric({ ...newMetric, name: e.target.value })}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                            placeholder="e.g. Extra Gloss"
+                            placeholder="e.g. Size, Weight"
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('multiplier') || 'Multiplier'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('metricValue') || 'Metric Value'}</label>
                         <input
-                            type="number"
-                            step="0.01"
-                            value={newMetric.multiplier}
-                            onChange={(e) => setNewMetric({ ...newMetric, multiplier: e.target.value })}
+                            type="text"
+                            value={newMetric.value}
+                            onChange={(e) => setNewMetric({ ...newMetric, value: e.target.value })}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            placeholder="e.g. 64x128, 5kg"
                             required
                         />
                     </div>
@@ -135,26 +121,18 @@ export default function AdminMetrics() {
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             <th className="px-6 py-4 text-sm font-bold text-gray-900">{t('metricName') || 'Metric Name'}</th>
-                            <th className="px-6 py-4 text-sm font-bold text-gray-900">{t('multiplier') || 'Multiplier'}</th>
-                            <th className="px-6 py-4 text-sm font-bold text-gray-900 text-right">{t('actions')}</th>
+                            <th className="px-6 py-4 text-sm font-bold text-gray-900">{t('metricValue') || 'Metric Value'}</th>
+                            <th className="px-6 py-4 text-sm font-bold text-gray-900 text-right">{t('actions') || 'Actions'}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {rates.map((rate) => (
-                            <tr key={rate.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{rate.metric_name}</td>
-                                <td className="px-6 py-4">
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        defaultValue={rate.multiplier}
-                                        onBlur={(e) => handleUpdateMultiplier(rate.id, e.target.value)}
-                                        className="w-24 px-3 py-1 border border-gray-200 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                                    />
-                                </td>
+                        {metrics.map((metric) => (
+                            <tr key={metric.id} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{metric.name}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500 font-medium">{metric.value}</td>
                                 <td className="px-6 py-4 text-right">
                                     <button
-                                        onClick={() => handleDeleteMetric(rate.id)}
+                                        onClick={() => handleDeleteMetric(metric.id)}
                                         className="p-2 text-red-400 hover:text-red-600 transition-colors"
                                     >
                                         <Trash2 className="w-5 h-5" />
@@ -162,10 +140,10 @@ export default function AdminMetrics() {
                                 </td>
                             </tr>
                         ))}
-                        {rates.length === 0 && (
+                        {metrics.length === 0 && (
                             <tr>
                                 <td colSpan={3} className="px-6 py-8 text-center text-gray-500 italic">
-                                    No metric rates defined.
+                                    No custom metrics defined.
                                 </td>
                             </tr>
                         )}

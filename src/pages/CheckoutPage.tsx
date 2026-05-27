@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import ContractViewerModal from '../components/ContractViewerModal';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,9 +17,15 @@ export default function CheckoutPage() {
   const { cartItems } = useCart();
   const { user } = useAuth();
   const { formatPrice, convertPrice, currency } = useCurrency();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+
+  // Compliance Agreement states
+  const [acceptedPreInfo, setAcceptedPreInfo] = useState(false);
+  const [acceptedSalesContract, setAcceptedSalesContract] = useState(false);
+  const [acceptedCustomProduction, setAcceptedCustomProduction] = useState(false);
+  const [activeContractKey, setActiveContractKey] = useState<string | null>(null);
 
   // Location State
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -84,6 +92,16 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    if (!acceptedPreInfo || !acceptedSalesContract || !acceptedCustomProduction) {
+      showToast(
+        language === 'tr'
+          ? 'Lütfen devam etmek için tüm sözleşmeleri ve uyarıları onaylayın.'
+          : 'Please accept all agreements and notices to proceed.',
+        'error'
+      );
+      return;
+    }
 
     setLoading(true);
 
@@ -331,6 +349,92 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 space-y-4 text-sm text-gray-600 mb-6">
+                <h3 className="font-bold text-gray-900 border-b pb-2">
+                  {language === 'tr' ? 'Satış Sözleşmeleri ve Bilgilendirmeler' : 'Sales Agreements and Disclosures'}
+                </h3>
+                
+                {/* Ön Bilgilendirme Formu Checkbox */}
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    id="acceptedPreInfo"
+                    checked={acceptedPreInfo}
+                    onChange={() => {
+                      if (!acceptedPreInfo) {
+                        setActiveContractKey('ön_bilgilendirme_formu');
+                      } else {
+                        setAcceptedPreInfo(false);
+                      }
+                    }}
+                    className="mt-0.5 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer"
+                  />
+                  <label htmlFor="acceptedPreInfo" className="cursor-pointer font-light select-none text-gray-600">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setActiveContractKey('ön_bilgilendirme_formu');
+                      }}
+                      className="font-semibold text-orange-600 hover:text-orange-700 underline mr-1"
+                    >
+                      {language === 'tr' ? 'Ön Bilgilendirme Formu' : 'Preliminary Information Form'}
+                    </button>
+                    {language === 'tr' ? '\'nu okudum ve kabul ediyorum.' : 'I have read and agree.'}
+                    <span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                </div>
+
+                {/* Mesafeli Satış Sözleşmesi Checkbox */}
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    id="acceptedSalesContract"
+                    checked={acceptedSalesContract}
+                    onChange={() => {
+                      if (!acceptedSalesContract) {
+                        setActiveContractKey('mesafeli_satiş_sözleşmesi');
+                      } else {
+                        setAcceptedSalesContract(false);
+                      }
+                    }}
+                    className="mt-0.5 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer"
+                  />
+                  <label htmlFor="acceptedSalesContract" className="cursor-pointer font-light select-none text-gray-600">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setActiveContractKey('mesafeli_satiş_sözleşmesi');
+                      }}
+                      className="font-semibold text-orange-600 hover:text-orange-700 underline mr-1"
+                    >
+                      {language === 'tr' ? 'Mesafeli Satış Sözleşmesi' : 'Distance Sales Agreement'}
+                    </button>
+                    {language === 'tr' ? '\'ni okudum ve kabul ediyorum.' : 'I have read and agree.'}
+                    <span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                </div>
+
+                {/* Personalized Production Checkbox (Normal required checkbox) */}
+                <div className="flex items-start gap-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <input
+                    type="checkbox"
+                    id="acceptedCustomProduction"
+                    checked={acceptedCustomProduction}
+                    onChange={(e) => setAcceptedCustomProduction(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer"
+                  />
+                  <label htmlFor="acceptedCustomProduction" className="cursor-pointer text-xs text-orange-800 font-light select-none">
+                    <strong>{language === 'tr' ? 'Kişiye Özel Üretim Uyarısı:' : 'Personalized Production Notice:'}</strong>{' '}
+                    {language === 'tr' 
+                      ? 'Siparişimin seçtiğim özelliklere (ölçü, çerçeve, materyal vb.) göre özel olarak üretileceğini ve üretim başladıktan sonra cayma hakkının sınırlanabileceğini biliyorum.'
+                      : 'I acknowledge that my order will be customized according to my selections (size, frame, material, etc.) and that the right of withdrawal may be limited once production begins.'}
+                    <span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -407,6 +511,28 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+      {activeContractKey && (
+        <ContractViewerModal
+          contractKey={activeContractKey}
+          onAccept={() => {
+            if (activeContractKey === 'ön_bilgilendirme_formu') {
+              setAcceptedPreInfo(true);
+            } else if (activeContractKey === 'mesafeli_satiş_sözleşmesi') {
+              setAcceptedSalesContract(true);
+            }
+            setActiveContractKey(null);
+          }}
+          onReject={() => {
+            if (activeContractKey === 'ön_bilgilendirme_formu') {
+              setAcceptedPreInfo(false);
+            } else if (activeContractKey === 'mesafeli_satiş_sözleşmesi') {
+              setAcceptedSalesContract(false);
+            }
+            setActiveContractKey(null);
+          }}
+          onClose={() => setActiveContractKey(null)}
+        />
+      )}
     </div>
   );
 }

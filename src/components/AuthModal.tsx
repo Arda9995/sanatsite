@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import ContractViewerModal from './ContractViewerModal';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -16,18 +17,26 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [acceptedAgreement, setAcceptedAgreement] = useState(false);
-  const [showAgreementModal, setShowAgreementModal] = useState(false);
+  const [acceptedMembership, setAcceptedMembership] = useState(false);
+  const [acceptedKvkk, setAcceptedKvkk] = useState(false);
+  const [acceptedMarketing, setAcceptedMarketing] = useState(false);
+  const [activeContractKey, setActiveContractKey] = useState<string | null>(null);
   const { signIn, signUp } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setError('');
 
-    if (isSignUp && !acceptedAgreement) {
-      setShowAgreementModal(true);
-      return;
+    if (isSignUp) {
+      if (!acceptedMembership || !acceptedKvkk) {
+        setError(
+          language === 'tr'
+            ? 'Lütfen devam etmek için zorunlu sözleşmeleri onaylayın.'
+            : 'Please accept the required agreements to continue.'
+        );
+        return;
+      }
     }
 
     setLoading(true);
@@ -55,32 +64,6 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     setLoading(false);
   };
 
-  const handleAgree = async () => {
-    if (loading) return;
-    setAcceptedAgreement(true);
-    setShowAgreementModal(false);
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const { error } = await signUp(email, password);
-      if (error) {
-        if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already exists')) {
-          setError(t('emailAlreadyExists'));
-        } else {
-          setError(error.message);
-        }
-        setLoading(false);
-      } else {
-        onClose();
-        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
-      }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -141,6 +124,116 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             </div>
           </div>
 
+          {isSignUp && (
+            <div className="space-y-3 pt-3 border-t border-gray-100 text-xs text-gray-600">
+              {/* Membership Agreement */}
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="acceptedMembership"
+                  checked={acceptedMembership}
+                  onChange={() => {
+                    if (!acceptedMembership) {
+                      setActiveContractKey('ticari_alici_üyelik_sözleşmesi');
+                    } else {
+                      setAcceptedMembership(false);
+                    }
+                  }}
+                  className="mt-0.5 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer"
+                />
+                <label htmlFor="acceptedMembership" className="cursor-pointer font-light select-none">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveContractKey('ticari_alici_üyelik_sözleşmesi');
+                    }}
+                    className="font-semibold text-orange-600 hover:text-orange-700 underline mr-1"
+                  >
+                    {language === 'tr' ? 'Alıcı Üyelik Sözleşmesi' : 'Buyer Membership Agreement'}
+                  </button>
+                  {language === 'tr' ? '\'ni okudum, onaylıyorum.' : 'I have read and agree.'}
+                  <span className="text-red-500 ml-0.5">*</span>
+                </label>
+              </div>
+
+              {/* KVKK Agreement */}
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="acceptedKvkk"
+                  checked={acceptedKvkk}
+                  onChange={() => {
+                    if (!acceptedKvkk) {
+                      setActiveContractKey('kvkk_aydinlatma_metni_alici');
+                    } else {
+                      setAcceptedKvkk(false);
+                    }
+                  }}
+                  className="mt-0.5 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer"
+                />
+                <label htmlFor="acceptedKvkk" className="cursor-pointer font-light select-none">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveContractKey('kvkk_aydinlatma_metni_alici');
+                    }}
+                    className="font-semibold text-orange-600 hover:text-orange-700 underline mr-1"
+                  >
+                    {language === 'tr' ? 'KVKK Aydınlatma Metni' : 'KVKK Clarification Text'}
+                  </button>
+                  {language === 'tr' ? '\'ni okudum, onaylıyorum.' : 'I have read and agree.'}
+                  <span className="text-red-500 ml-0.5">*</span>
+                </label>
+              </div>
+
+              {/* Commercial Electronic Message (Optional) */}
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="acceptedMarketing"
+                  checked={acceptedMarketing}
+                  onChange={(e) => setAcceptedMarketing(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer"
+                />
+                <label htmlFor="acceptedMarketing" className="cursor-pointer font-light select-none">
+                  {language === 'tr' ? (
+                    <>
+                      Tarafıma{' '}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setActiveContractKey('kvkk_kurum_i̇çi-ticari_elektronik_i̇leti');
+                        }}
+                        className="font-semibold text-orange-600 hover:text-orange-700 underline mx-1"
+                      >
+                        Ticari Elektronik İleti
+                      </button>{' '}
+                      gönderilmesine onay veriyorum.
+                    </>
+                  ) : (
+                    <>
+                      I consent to receiving{' '}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setActiveContractKey('kvkk_kurum_i̇çi-ticari_elektronik_i̇leti');
+                        }}
+                        className="font-semibold text-orange-600 hover:text-orange-700 underline mx-1"
+                      >
+                        Commercial Electronic Communications
+                      </button>
+                      .
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
               {error}
@@ -168,41 +261,28 @@ export default function AuthModal({ onClose }: AuthModalProps) {
         </div>
       </div>
 
-      {showAgreementModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
-            <button
-              onClick={() => setShowAgreementModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <h3 className="text-2xl font-bold mb-6 text-gray-900">{t('userAgreementLabel')}</h3>
-            <div className="prose prose-sm max-h-[60vh] overflow-y-auto pr-4 mb-8">
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                {t('userAgreementContent')}
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => {
-                  setShowAgreementModal(false);
-                  setAcceptedAgreement(false);
-                }}
-                className="flex-1 py-3 border-2 border-gray-200 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              >
-                {t('noIDisagree')}
-              </button>
-              <button
-                onClick={handleAgree}
-                className="flex-1 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
-              >
-                {t('yesIAgree')}
-              </button>
-            </div>
-          </div>
-        </div>
+      {activeContractKey && (
+        <ContractViewerModal
+          contractKey={activeContractKey}
+          viewOnly={activeContractKey === 'kvkk_kurum_i̇çi-ticari_elektronik_i̇leti'}
+          onAccept={() => {
+            if (activeContractKey === 'ticari_alici_üyelik_sözleşmesi') {
+              setAcceptedMembership(true);
+            } else if (activeContractKey === 'kvkk_aydinlatma_metni_alici') {
+              setAcceptedKvkk(true);
+            }
+            setActiveContractKey(null);
+          }}
+          onReject={() => {
+            if (activeContractKey === 'ticari_alici_üyelik_sözleşmesi') {
+              setAcceptedMembership(false);
+            } else if (activeContractKey === 'kvkk_aydinlatma_metni_alici') {
+              setAcceptedKvkk(false);
+            }
+            setActiveContractKey(null);
+          }}
+          onClose={() => setActiveContractKey(null)}
+        />
       )}
     </div>
   );

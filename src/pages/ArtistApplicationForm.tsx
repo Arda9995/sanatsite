@@ -1,16 +1,25 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, Camera, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import ContractViewerModal from '../components/ContractViewerModal';
 
 export default function ArtistApplicationForm() {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
+
+    // Compliance checkboxes
+    const [acceptedArtistMembership, setAcceptedArtistMembership] = useState(false);
+    const [acceptedArtistKvkk, setAcceptedArtistKvkk] = useState(false);
+    const [acceptedLicenseContract, setAcceptedLicenseContract] = useState(false);
+    const [acceptedIntellectualProperty, setAcceptedIntellectualProperty] = useState(false);
+    const [activeContractKey, setActiveContractKey] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         surname: '',
@@ -27,6 +36,16 @@ export default function ArtistApplicationForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!acceptedArtistMembership || !acceptedArtistKvkk || !acceptedLicenseContract || !acceptedIntellectualProperty) {
+            setMessage(
+                language === 'tr'
+                    ? 'Hata: Lütfen devam etmek için tüm sözleşmeleri onaylayın.'
+                    : 'Error: Please accept all agreements to continue.'
+            );
+            return;
+        }
+
         setLoading(true);
         setMessage('');
 
@@ -319,8 +338,138 @@ export default function ArtistApplicationForm() {
                         />
                     </div>
 
+                    <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 mt-6 space-y-4 text-sm text-gray-600">
+                        <h3 className="font-bold text-gray-900 border-b pb-2">
+                            {language === 'tr' ? 'Sanatçı Sözleşmeleri ve Taahhütnameler' : 'Artist Agreements and Commitments'}
+                        </h3>
+
+                        {/* Sanatçı Üyelik Sözleşmesi */}
+                        <div className="flex items-start gap-2">
+                            <input
+                                type="checkbox"
+                                id="acceptedArtistMembership"
+                                checked={acceptedArtistMembership}
+                                onChange={() => {
+                                    if (!acceptedArtistMembership) {
+                                        setActiveContractKey('ticari_sanatçi_üyelik_sözleşmesi');
+                                    } else {
+                                        setAcceptedArtistMembership(false);
+                                    }
+                                }}
+                                className="mt-0.5 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer"
+                            />
+                            <label htmlFor="acceptedArtistMembership" className="cursor-pointer font-light select-none text-gray-600">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveContractKey('ticari_sanatçi_üyelik_sözleşmesi');
+                                    }}
+                                    className="font-semibold text-orange-600 hover:text-orange-700 underline mr-1"
+                                >
+                                    {language === 'tr' ? 'Sanatçı Üyelik Sözleşmesi' : 'Artist Membership Agreement'}
+                                </button>
+                                {language === 'tr' ? '\'ni okudum ve kabul ediyorum.' : 'I have read and agree.'}
+                                <span className="text-red-500 ml-0.5">*</span>
+                            </label>
+                        </div>
+
+                        {/* Sanatçı KVKK Aydınlatma Metni */}
+                        <div className="flex items-start gap-2">
+                            <input
+                                type="checkbox"
+                                id="acceptedArtistKvkk"
+                                checked={acceptedArtistKvkk}
+                                onChange={() => {
+                                    if (!acceptedArtistKvkk) {
+                                        setActiveContractKey('kvkk_aydinlatma_metni_sanatçi');
+                                    } else {
+                                        setAcceptedArtistKvkk(false);
+                                    }
+                                }}
+                                className="mt-0.5 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer"
+                            />
+                            <label htmlFor="acceptedArtistKvkk" className="cursor-pointer font-light select-none text-gray-600">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveContractKey('kvkk_aydinlatma_metni_sanatçi');
+                                    }}
+                                    className="font-semibold text-orange-600 hover:text-orange-700 underline mr-1"
+                                >
+                                    {language === 'tr' ? 'Sanatçı KVKK Aydınlatma Metni' : 'Artist KVKK Clarification Text'}
+                                </button>
+                                {language === 'tr' ? '\'ni okudum ve kabul ediyorum.' : 'I have read and agree.'}
+                                <span className="text-red-500 ml-0.5">*</span>
+                            </label>
+                        </div>
+
+                        {/* Sanatçı Eser Lisans Sözleşmesi */}
+                        <div className="flex items-start gap-2">
+                            <input
+                                type="checkbox"
+                                id="acceptedLicenseContract"
+                                checked={acceptedLicenseContract}
+                                onChange={() => {
+                                    if (!acceptedLicenseContract) {
+                                        setActiveContractKey('hukuki_sanatçi_eser_lisans_sözleşmesi');
+                                    } else {
+                                        setAcceptedLicenseContract(false);
+                                    }
+                                }}
+                                className="mt-0.5 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer"
+                            />
+                            <label htmlFor="acceptedLicenseContract" className="cursor-pointer font-light select-none text-gray-600">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveContractKey('hukuki_sanatçi_eser_lisans_sözleşmesi');
+                                    }}
+                                    className="font-semibold text-orange-600 hover:text-orange-700 underline mr-1"
+                                >
+                                    {language === 'tr' ? 'Sanatçı Eser Lisans Sözleşmesi' : 'Artist Artwork License Agreement'}
+                                </button>
+                                {language === 'tr' ? '\'ni okudum ve kabul ediyorum.' : 'I have read and agree.'}
+                                <span className="text-red-500 ml-0.5">*</span>
+                            </label>
+                        </div>
+
+                        {/* Sanatçı Fikri Haklar Taahhütnamesi */}
+                        <div className="flex items-start gap-2">
+                            <input
+                                type="checkbox"
+                                id="acceptedIntellectualProperty"
+                                checked={acceptedIntellectualProperty}
+                                onChange={() => {
+                                    if (!acceptedIntellectualProperty) {
+                                        setActiveContractKey('ticari-hukuki_sanatçi_fikri_haklar_taahhütnamesi');
+                                    } else {
+                                        setAcceptedIntellectualProperty(false);
+                                    }
+                                }}
+                                className="mt-0.5 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer"
+                            />
+                            <label htmlFor="acceptedIntellectualProperty" className="cursor-pointer font-light select-none text-gray-600">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveContractKey('ticari-hukuki_sanatçi_fikri_haklar_taahhütnamesi');
+                                    }}
+                                    className="font-semibold text-orange-600 hover:text-orange-700 underline mr-1"
+                                >
+                                    {language === 'tr' ? 'Sanatçı Fikri Haklar Taahhütnamesi' : 'Artist Intellectual Property Commitment'}
+                                </button>
+                                {language === 'tr' ? '\'ni okudum ve kabul ediyorum.' : 'I have read and agree.'}
+                                <span className="text-red-500 ml-0.5">*</span>
+                            </label>
+                        </div>
+                    </div>
+
                     {message && (
-                        <div className={`p-4 rounded-lg ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+                        <div className={`p-4 rounded-lg ${message.toLowerCase().includes('error') || message.includes('Hata') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
                             {message}
                         </div>
                     )}
@@ -343,6 +492,36 @@ export default function ArtistApplicationForm() {
                     </div>
                 </form>
             </div>
+            {activeContractKey && (
+                <ContractViewerModal
+                    contractKey={activeContractKey}
+                    onAccept={() => {
+                        if (activeContractKey === 'ticari_sanatçi_üyelik_sözleşmesi') {
+                            setAcceptedArtistMembership(true);
+                        } else if (activeContractKey === 'kvkk_aydinlatma_metni_sanatçi') {
+                            setAcceptedArtistKvkk(true);
+                        } else if (activeContractKey === 'hukuki_sanatçi_eser_lisans_sözleşmesi') {
+                            setAcceptedLicenseContract(true);
+                        } else if (activeContractKey === 'ticari-hukuki_sanatçi_fikri_haklar_taahhütnamesi') {
+                            setAcceptedIntellectualProperty(true);
+                        }
+                        setActiveContractKey(null);
+                    }}
+                    onReject={() => {
+                        if (activeContractKey === 'ticari_sanatçi_üyelik_sözleşmesi') {
+                            setAcceptedArtistMembership(false);
+                        } else if (activeContractKey === 'kvkk_aydinlatma_metni_sanatçi') {
+                            setAcceptedArtistKvkk(false);
+                        } else if (activeContractKey === 'hukuki_sanatçi_eser_lisans_sözleşmesi') {
+                            setAcceptedLicenseContract(false);
+                        } else if (activeContractKey === 'ticari-hukuki_sanatçi_fikri_haklar_taahhütnamesi') {
+                            setAcceptedIntellectualProperty(false);
+                        }
+                        setActiveContractKey(null);
+                    }}
+                    onClose={() => setActiveContractKey(null)}
+                />
+            )}
         </div>
     );
 }

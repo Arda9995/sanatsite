@@ -22,6 +22,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import AuthCallback from './pages/AuthCallback';
 import AuthModal from './components/AuthModal';
 import Footer from './components/Footer';
+import CookieBanner from './components/CookieBanner';
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -85,6 +86,7 @@ function App() {
 
                   <Footer />
                   {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+                  <CookieBanner />
                 </div>
               </CartProvider>
             </AdminProvider>

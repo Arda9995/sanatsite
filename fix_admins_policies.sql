@@ -2,7 +2,18 @@
 -- Fix Admin Policies and Helper Function
 -- ============================================
 
--- 1. Create a security definer function to check admin status
+-- 0. Drop existing table and functions if they conflict
+DROP TABLE IF EXISTS public.admins CASCADE;
+DROP FUNCTION IF EXISTS public.is_admin() CASCADE;
+
+-- 1. Create the admins table fresh
+CREATE TABLE public.admins (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. Create a security definer function to check admin status
 -- This avoids infinite recursion when checking RLS on the admins table itself
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN SECURITY DEFINER AS $$

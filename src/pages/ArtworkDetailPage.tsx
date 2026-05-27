@@ -64,19 +64,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
     const artworkData = data as unknown as ArtworkWithArtist | null;
     if (artworkData) {
       setArtwork(artworkData);
-      
-      const metrics = artworkData.artwork_metrics || [];
-      const customSizesList = Array.from(new Set(metrics
-        .filter((m) => m.metric_value)
-        .map((m) => m.metric_value.trim())
-        .filter((val) => val !== '')
-      ));
-        
-      if (customSizesList.length > 0) {
-        setSelectedSize(customSizesList[0]);
-      } else {
-        setSelectedSize('38x50cm');
-      }
+      setSelectedSize('38x50cm');
     }
 
     // Check if favorited
@@ -221,9 +209,8 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
       ))
     : [];
 
-  const sizesToRender = customSizes.length > 0
-    ? customSizes
-    : ['38x50cm', '45x60cm', '60x80cm', '75x100cm', '96x128cm'];
+  const defaultSizes = ['38x50cm', '45x60cm', '60x80cm', '75x100cm', '96x128cm'];
+  const sizesToRender = Array.from(new Set([...defaultSizes, ...customSizes]));
 
   return (
     <div className="min-h-screen bg-white">
@@ -343,7 +330,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                       // Force canvas material when stretched canvas is selected
                       setSelectedMaterial('canvas');
                       // Reset to smaller size if largest is selected
-                      if (customSizes.length === 0 && selectedSize === '96x128cm') {
+                      if (selectedSize === '96x128cm') {
                         setSelectedSize('75x100cm');
                       }
                     }}
@@ -364,7 +351,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                   <button
                     onClick={() => {
                       setSelectedMaterial('photograph-paper');
-                      if (customSizes.length === 0 && selectedSize === '96x128cm') {
+                      if (selectedSize === '96x128cm') {
                         setSelectedSize('75x100cm');
                       }
                     }}
@@ -401,7 +388,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                 <h3 className="text-xs font-bold uppercase tracking-widest mb-3">{t('size')}</h3>
                 <div className="flex flex-wrap gap-2">
                   {sizesToRender.map((size) => {
-                    const isLargest = customSizes.length === 0 && size === '96x128cm';
+                    const isLargest = size === '96x128cm';
                     const isDisabled = isLargest && (selectedFrame === 'stretched-canvas' || selectedMaterial === 'photograph-paper');
 
                     return (
@@ -421,7 +408,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                     );
                   })}
                 </div>
-                {customSizes.length === 0 && (selectedFrame === 'stretched-canvas' || selectedMaterial === 'photograph-paper') && (
+                {(selectedFrame === 'stretched-canvas' || selectedMaterial === 'photograph-paper') && (
                   <p className="text-xs text-gray-500 mt-2">
                     {t('largestSizeNote')}
                   </p>

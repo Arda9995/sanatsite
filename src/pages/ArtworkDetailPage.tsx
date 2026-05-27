@@ -66,10 +66,11 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
       setArtwork(artworkData);
       
       const metrics = artworkData.artwork_metrics || [];
-      const customSizesList = metrics
-        .filter((m) => m.metric_name && m.metric_value && ['size', 'boyut', 'dimension', 'dimensions'].includes(m.metric_name.toLowerCase()))
+      const customSizesList = Array.from(new Set(metrics
+        .filter((m) => m.metric_value)
         .map((m) => m.metric_value.trim())
-        .filter((val) => val !== '');
+        .filter((val) => val !== '')
+      ));
         
       if (customSizesList.length > 0) {
         setSelectedSize(customSizesList[0]);
@@ -213,19 +214,16 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
   if (!artwork) return null;
 
   const customSizes = artwork.artwork_metrics
-    ? artwork.artwork_metrics
-        .filter((m) => m.metric_name && m.metric_value && ['size', 'boyut', 'dimension', 'dimensions'].includes(m.metric_name.toLowerCase()))
+    ? Array.from(new Set(artwork.artwork_metrics
+        .filter((m) => m.metric_value)
         .map((m) => m.metric_value.trim())
         .filter((val) => val !== '')
+      ))
     : [];
 
   const sizesToRender = customSizes.length > 0
     ? customSizes
     : ['38x50cm', '45x60cm', '60x80cm', '75x100cm', '96x128cm'];
-
-  const otherMetrics = artwork.artwork_metrics
-    ? artwork.artwork_metrics.filter((m) => !m.metric_name || !['size', 'boyut', 'dimension', 'dimensions'].includes(m.metric_name.toLowerCase()))
-    : [];
 
   return (
     <div className="min-h-screen bg-white">
@@ -316,25 +314,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
               <p>{t('openEditionDescription')} {t('variousDimensions')}.</p>
             </div>
 
-            {otherMetrics.length > 0 && (
-              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 border-b border-gray-100 pb-2 font-semibold">
-                  {t('customMetrics') || 'Specifications'}
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {otherMetrics.map((metric) => (
-                    <div key={metric.id} className="space-y-1">
-                      <span className="block text-[10px] uppercase tracking-widest text-gray-400 font-bold">
-                        {metric.metric_name}
-                      </span>
-                      <span className="block text-sm font-medium text-gray-800">
-                        {metric.metric_value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+
 
             {/* Options */}
             <div className="space-y-6">

@@ -9,6 +9,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import DeliveryCalendar from '../components/admin/DeliveryCalendar';
 import DeliveryRequestsInbox from '../components/admin/DeliveryRequestsInbox';
+import AdminUsers from '../components/admin/AdminUsers';
 
 type Currency = 'USD' | 'EUR' | 'TRY' | 'GBP';
 
@@ -16,7 +17,7 @@ export default function AdminPanel() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { exchangeRates, refreshRates } = useCurrency();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [artworks, setArtworks] = useState<any[]>([]);
   const [artists, setArtists] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -27,7 +28,7 @@ export default function AdminPanel() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'rates' | 'artworks' | 'applications' | 'artists' | 'submissions' | 'delivery' | 'requests' | 'orders' | 'blacklist'>('rates');
+  const [activeTab, setActiveTab] = useState<'rates' | 'artworks' | 'applications' | 'artists' | 'submissions' | 'delivery' | 'requests' | 'orders' | 'blacklist' | 'users'>('rates');
   const [deliveryRequestsCount, setDeliveryRequestsCount] = useState(0);
   const [newOrdersCount, setNewOrdersCount] = useState(0);
 
@@ -519,6 +520,16 @@ export default function AdminPanel() {
               >
                 <ShieldAlert className="w-5 h-5 inline mr-2" />
                 {t('blacklist')}
+              </button>
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'users'
+                  ? 'border-b-2 border-orange-600 text-orange-600 bg-orange-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+              >
+                <Users className="w-5 h-5 inline mr-2" />
+                {language === 'tr' ? 'Kullanıcılar' : 'Users'}
               </button>
             </div>
           </div>
@@ -1117,6 +1128,9 @@ export default function AdminPanel() {
             )}
             {activeTab === 'blacklist' && (
               <AdminBlacklist />
+            )}
+            {activeTab === 'users' && (
+              <AdminUsers />
             )}
           </div>
         </div>

@@ -8,9 +8,17 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import type { Artwork, Artist } from '../lib/database.types';
 
+interface ArtworkMetric {
+  id: string;
+  artwork_id: string;
+  metric_name: string;
+  metric_value: string;
+  created_at?: string;
+}
+
 interface ArtworkWithArtist extends Artwork {
   artists: Artist;
-  artwork_metrics?: any[];
+  artwork_metrics?: ArtworkMetric[];
 }
 
 interface ArtworkDetailPageProps {
@@ -42,6 +50,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
     if (artworkId) {
       loadArtwork();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artworkId]);
 
   const loadArtwork = async () => {
@@ -52,13 +61,27 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
       .eq('is_deleted', false)
       .maybeSingle();
 
-    if (data) {
-      setArtwork(data as ArtworkWithArtist);
+    const artworkData = data as unknown as ArtworkWithArtist | null;
+    if (artworkData) {
+      setArtwork(artworkData);
+      
+      const metrics = artworkData.artwork_metrics || [];
+      const customSizesList = metrics
+        .filter((m) => m.metric_name && m.metric_value && ['size', 'boyut', 'dimension', 'dimensions'].includes(m.metric_name.toLowerCase()))
+        .map((m) => m.metric_value.trim())
+        .filter((val) => val !== '');
+        
+      if (customSizesList.length > 0) {
+        setSelectedSize(customSizesList[0]);
+      } else {
+        setSelectedSize('38x50cm');
+      }
     }
 
     // Check if favorited
     if (user && artworkId) {
       const { data: fav } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('favorites') as any)
         .select('id')
         .eq('user_id', user.id)
@@ -189,6 +212,21 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
 
   if (!artwork) return null;
 
+  const customSizes = artwork.artwork_metrics
+    ? artwork.artwork_metrics
+        .filter((m) => m.metric_name && m.metric_value && ['size', 'boyut', 'dimension', 'dimensions'].includes(m.metric_name.toLowerCase()))
+        .map((m) => m.metric_value.trim())
+        .filter((val) => val !== '')
+    : [];
+
+  const sizesToRender = customSizes.length > 0
+    ? customSizes
+    : ['38x50cm', '45x60cm', '60x80cm', '75x100cm', '96x128cm'];
+
+  const otherMetrics = artwork.artwork_metrics
+    ? artwork.artwork_metrics.filter((m) => !m.metric_name || !['size', 'boyut', 'dimension', 'dimensions'].includes(m.metric_name.toLowerCase()))
+    : [];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Breadcrumbs */}
@@ -245,10 +283,10 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                 {artwork.title}
               </h1>
               <p className="text-2xl font-light text-gray-900">
-                {formatPrice(calculatePrice() * quantity, (artwork.base_currency as any) || 'EUR')}
+                {formatPrice(calculatePrice() * quantity, (artwork.base_currency as 'USD' | 'EUR' | 'TRY' | 'GBP') || 'EUR')}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                {t('basePrice')}: {formatPrice(artwork.price, (artwork.base_currency as any) || 'EUR')}
+                {t('basePrice')}: {formatPrice(artwork.price, (artwork.base_currency as 'USD' | 'EUR' | 'TRY' | 'GBP') || 'EUR')}
               </p>
             </div>
 
@@ -278,13 +316,13 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
               <p>{t('openEditionDescription')} {t('variousDimensions')}.</p>
             </div>
 
-            {artwork.artwork_metrics && artwork.artwork_metrics.length > 0 && (
+            {otherMetrics.length > 0 && (
               <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 space-y-4">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 border-b border-gray-100 pb-2 font-semibold">
                   {t('customMetrics') || 'Specifications'}
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
-                  {artwork.artwork_metrics.map((metric: any) => (
+                  {otherMetrics.map((metric) => (
                     <div key={metric.id} className="space-y-1">
                       <span className="block text-[10px] uppercase tracking-widest text-gray-400 font-bold">
                         {metric.metric_name}
@@ -325,7 +363,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                       // Force canvas material when stretched canvas is selected
                       setSelectedMaterial('canvas');
                       // Reset to smaller size if largest is selected
-                      if (selectedSize === '96x128cm') {
+                      if (customSizes.length === 0 && selectedSize === '96x128cm') {
                         setSelectedSize('75x100cm');
                       }
                     }}
@@ -346,7 +384,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                   <button
                     onClick={() => {
                       setSelectedMaterial('photograph-paper');
-                      if (selectedSize === '96x128cm') {
+                      if (customSizes.length === 0 && selectedSize === '96x128cm') {
                         setSelectedSize('75x100cm');
                       }
                     }}
@@ -382,8 +420,8 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-widest mb-3">{t('size')}</h3>
                 <div className="flex flex-wrap gap-2">
-                  {['38x50cm', '45x60cm', '60x80cm', '75x100cm', '96x128cm'].map((size) => {
-                    const isLargest = size === '96x128cm';
+                  {sizesToRender.map((size) => {
+                    const isLargest = customSizes.length === 0 && size === '96x128cm';
                     const isDisabled = isLargest && (selectedFrame === 'stretched-canvas' || selectedMaterial === 'photograph-paper');
 
                     return (
@@ -403,7 +441,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                     );
                   })}
                 </div>
-                {(selectedFrame === 'stretched-canvas' || selectedMaterial === 'photograph-paper') && (
+                {customSizes.length === 0 && (selectedFrame === 'stretched-canvas' || selectedMaterial === 'photograph-paper') && (
                   <p className="text-xs text-gray-500 mt-2">
                     {t('largestSizeNote')}
                   </p>
@@ -452,6 +490,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
 
                     // Toggle favorite
                     const { data: existing } = await (supabase
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       .from('favorites') as any)
                       .select('id')
                       .eq('user_id', user.id)
@@ -461,12 +500,14 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
                     if (existing) {
                       // Remove from favorites
                       await (supabase
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         .from('favorites') as any)
                         .delete()
                         .eq('id', existing.id);
                     } else {
                       // Add to favorites
                       await (supabase
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         .from('favorites') as any)
                         .insert([{
                           user_id: user.id,

@@ -60,56 +60,57 @@ export default function ContractViewerModal({
   }, [content]);
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full h-[85vh] flex flex-col relative overflow-hidden border border-gray-200">
-        {/* PDF Viewer-style Header */}
-        <div className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between text-white">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full h-[80vh] flex flex-col relative overflow-hidden border border-gray-100">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded bg-red-500 flex items-center justify-center text-white font-bold text-xs shadow-md">
-              PDF
-            </div>
-            <h3 className="text-sm font-semibold truncate max-w-[50vw]">
+            <h3 className="text-lg font-bold bg-gradient-to-r from-pink-500 via-orange-600 to-yellow-500 bg-clip-text text-transparent truncate max-w-[55vw]">
               {title}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
+            className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Scrollable PDF Page View */}
+        {/* Scrollable Reader Area */}
         <div 
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto bg-gray-600 p-6 flex justify-center"
+          className="flex-1 overflow-y-auto bg-gray-50/50 p-6 flex justify-center"
         >
-          {/* A4 sheet styling */}
-          <div className="bg-white max-w-2xl w-full p-8 md:p-12 shadow-2xl rounded-sm border border-gray-400 min-h-max prose prose-sm select-text text-gray-800 leading-relaxed text-justify">
-            <h2 className="text-center font-bold text-lg md:text-xl mb-6 text-gray-900 border-b pb-4 uppercase tracking-wide">
+          {/* Document Sheet */}
+          <div className="bg-white max-w-2xl w-full p-8 md:p-10 shadow-lg rounded-2xl border border-gray-100 min-h-max select-text text-gray-700 leading-relaxed text-left relative overflow-hidden">
+            {/* Ambient gradients */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-200/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-yellow-200/10 rounded-full blur-3xl pointer-events-none" />
+
+            <h2 className="text-center font-extrabold text-lg md:text-xl mb-6 bg-gradient-to-r from-pink-500 via-orange-600 to-yellow-500 bg-clip-text text-transparent border-b border-gray-100 pb-4 uppercase tracking-wide">
               {title}
             </h2>
-            <p className="whitespace-pre-wrap text-sm md:text-base font-light">
+            <p className="whitespace-pre-wrap text-sm md:text-base font-light text-gray-600">
               {content}
             </p>
           </div>
         </div>
 
         {/* Action / Status Footer */}
-        <div className="border-t border-gray-200 px-6 py-4 bg-white flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="border-t border-gray-100 px-6 py-4 bg-white flex flex-col sm:flex-row items-center justify-between gap-4">
           {viewOnly ? (
             <div className="flex justify-end w-full">
               <button
                 onClick={onClose}
-                className="px-8 py-2.5 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors text-sm shadow-md"
+                className="px-8 py-2.5 bg-gradient-to-r from-pink-400 via-orange-500 to-yellow-500 text-white rounded-full font-semibold hover:shadow-lg transition-all text-sm shadow-md cursor-pointer transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 {language === 'tr' ? 'Kapat' : 'Close'}
               </button>
             </div>
           ) : !hasScrolledToBottom ? (
-            <div className="flex items-center justify-center w-full text-sm text-orange-600 font-semibold animate-pulse gap-2 py-2">
+            <div className="flex items-center justify-center w-full text-xs md:text-sm text-orange-600 font-semibold animate-pulse gap-2 py-2">
               <ArrowDown className="w-4 h-4 animate-bounce" />
               {language === 'tr' 
                 ? 'Lütfen onaylamak için sözleşmeyi sonuna kadar okuyunuz.' 
@@ -119,13 +120,13 @@ export default function ContractViewerModal({
             <div className="flex gap-4 w-full sm:justify-end justify-between animate-fadeIn">
               <button
                 onClick={onReject}
-                className="flex-1 sm:flex-initial px-8 py-2.5 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors text-sm shadow-md"
+                className="flex-1 sm:flex-initial px-8 py-2.5 bg-gradient-to-r from-pink-400 via-orange-500 to-yellow-500 text-white rounded-full font-semibold hover:shadow-lg transition-all text-sm shadow-md text-center transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
                 {language === 'tr' ? 'Reddet' : 'Reject'}
               </button>
               <button
                 onClick={onAccept}
-                className="flex-1 sm:flex-initial px-8 py-2.5 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors text-sm shadow-md"
+                className="flex-1 sm:flex-initial px-8 py-2.5 bg-gradient-to-r from-pink-400 via-orange-500 to-yellow-500 text-white rounded-full font-semibold hover:shadow-lg transition-all text-sm shadow-md text-center transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
                 {language === 'tr' ? 'Kabul Et' : 'Accept'}
               </button>

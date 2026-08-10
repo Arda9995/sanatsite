@@ -56,8 +56,8 @@ export default function Header() {
               className="flex items-center group py-1"
             >
               <img
-                src="/logo_gradient.png"
-                alt="Comunidade Fine Arts"
+                src="/logo_elevenlabs_gradient.png"
+                alt="Comunart"
                 className="h-14 md:h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </Link>

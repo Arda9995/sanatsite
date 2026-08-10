@@ -15,9 +15,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Footer Sections
     work: 'WORK',
     shop: 'SHOP',
-    sanatSiteCom: 'COMUNIDADE.COM',
+    sanatSiteCom: 'COMUNART.COM',
     order: 'ORDER',
-    copyright: '© 2026 Comunidade. All rights reserved.',
+    copyright: '© 2026 Comunart. All rights reserved.',
 
     // Art Styles
     digital: 'Digital',
@@ -122,7 +122,7 @@ const translations: Record<Language, Record<string, string>> = {
     vertical: 'Vertical',
     square: 'Square',
     year: 'Year',
-    artCollection: 'Welcome to Comunidade',
+    artCollection: 'Welcome to Comunart',
     browseOurCompleteCollection: 'Browse our complete collection of artworks',
     allCategories: 'All Categories',
     loadingArtworks: 'Loading artworks...',
@@ -551,9 +551,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Footer Sections
     work: 'ÇALIŞMALAR',
     shop: 'MAĞAZA',
-    sanatSiteCom: 'COMUNIDADE.COM',
+    sanatSiteCom: 'COMUNART.COM',
     order: 'SİPARİŞ',
-    copyright: '© 2026 Comunidade. Tüm hakları saklıdır.',
+    copyright: '© 2026 Comunart. Tüm hakları saklıdır.',
 
     // Art Styles
     digital: 'Dijital',
@@ -659,7 +659,7 @@ const translations: Record<Language, Record<string, string>> = {
     vertical: 'Dikey',
     square: 'Kare',
     year: 'Yıl',
-    artCollection: 'Comunidade\'e Hoş Geldiniz',
+    artCollection: 'Comunart\'a Hoş Geldiniz',
     browseOurCompleteCollection: 'Tam koleksiyonumuza göz atın',
     allCategories: 'Tüm Kategoriler',
     loadingArtworks: 'Eserler yükleniyor...',

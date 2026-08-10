@@ -666,6 +666,8 @@ const translations: Record<Language, Record<string, string>> = {
     noArtworksFound: 'Eser bulunamadı',
     discoverTalentedArtists: 'Yetenekli Sanatçıları Keşfedin',
     exploreOurCuratedCollection: 'Özenle seçilmiş sanatçı koleksiyonumuzu keşfedin',
+    meetOurArtists: 'Sanatçılarımızla Tanışın',
+    meetOurArtistsDesc: 'Yetenekli yaratıcılar topluluğumuzu ve onların eşsiz yolculuklarını keşfedin.',
     artworks: 'Eserler',
     artist: 'Sanatçı',
     artistLabel: 'Sanatçı',
@@ -1033,9 +1035,21 @@ const translations: Record<Language, Record<string, string>> = {
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
+  const detectBrowserLanguage = (): Language => {
+    try {
+      const browserLang = navigator.language || (navigator as any).userLanguage || '';
+      return browserLang.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+    } catch (e) {
+      return 'en';
+    }
+  };
+
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('language');
-    return (saved as Language) || 'en';
+    if (saved && (saved === 'en' || saved === 'tr')) {
+      return saved as Language;
+    }
+    return detectBrowserLanguage();
   });
 
   useEffect(() => {

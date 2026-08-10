@@ -270,9 +270,6 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
               <p className="text-2xl font-light text-gray-900">
                 {formatPrice(calculatePrice() * quantity, (artwork.base_currency as 'USD' | 'EUR' | 'TRY' | 'GBP') || 'EUR')}
               </p>
-              <p className="text-sm text-gray-500 mt-1">
-                {t('basePrice')}: {formatPrice(artwork.price, (artwork.base_currency as 'USD' | 'EUR' | 'TRY' | 'GBP') || 'EUR')}
-              </p>
             </div>
 
             <div className="space-y-4 text-sm text-gray-600 leading-relaxed font-light">

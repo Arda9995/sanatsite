@@ -12,7 +12,7 @@ export default function VerifyEmail() {
     const { verifyOtp, signUp } = useAuth();
 
     const [email, setEmail] = useState('');
-    const [otp, setOtp] = useState(['', '', '', '', '', '', '', '']); // Changed to 8 digits
+    const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
     const [error, setError] = useState('');
@@ -36,7 +36,7 @@ export default function VerifyEmail() {
         newOtp[index] = value.slice(-1);
         setOtp(newOtp);
 
-        if (value && index < 7) { // Support up to 8 boxes
+        if (value && index < 5) {
             inputRefs.current[index + 1]?.focus();
         }
     };
@@ -49,7 +49,7 @@ export default function VerifyEmail() {
 
     const handlePaste = (e: React.ClipboardEvent) => {
         e.preventDefault();
-        const pastedData = e.clipboardData.getData('text').slice(0, 8).split(''); // Support up to 8 boxes
+        const pastedData = e.clipboardData.getData('text').slice(0, 6).split('');
         const newOtp = [...otp];
         pastedData.forEach((char, i) => {
             if (/^\d$/.test(char)) {
@@ -57,13 +57,13 @@ export default function VerifyEmail() {
             }
         });
         setOtp(newOtp);
-        inputRefs.current[Math.min(pastedData.length, 7)]?.focus();
+        inputRefs.current[Math.min(pastedData.length, 5)]?.focus();
     };
 
     const handleVerify = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         const code = otp.join('');
-        if (code.length !== 8) return; // Support up to 8 boxes
+        if (code.length !== 6) return;
 
         setLoading(true);
         setError('');

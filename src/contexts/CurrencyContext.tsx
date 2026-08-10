@@ -17,6 +17,8 @@ interface CurrencyContextType {
   convertPrice: (price: number, fromCurrency: Currency, toCurrency: Currency) => number;
   exchangeRates: ExchangeRates;
   refreshRates: () => Promise<void>;
+  userCountry: string;
+  isTurkeyUser: boolean;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -29,9 +31,24 @@ const currencySymbols = {
 };
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
+  const [userCountry, setUserCountry] = useState<string>('UNKNOWN');
+
+  const isTurkeyVisitor = () => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const lang = navigator.language || '';
+      return tz.includes('Istanbul') || lang.startsWith('tr');
+    } catch (e) {
+      return false;
+    }
+  };
+
   const [currency, setCurrencyState] = useState<Currency>(() => {
     const saved = localStorage.getItem('currency');
-    return (saved as Currency) || 'EUR';
+    if (saved && ['USD', 'EUR', 'TRY', 'GBP'].includes(saved)) {
+      return saved as Currency;
+    }
+    return isTurkeyVisitor() ? 'TRY' : 'EUR';
   });
 
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({
@@ -40,6 +57,24 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     TRY: 37.50,
     GBP: 0.86
   });
+
+  useEffect(() => {
+    // Detect country via IP
+    fetch('https://ipapi.co/json/')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.country_code) {
+          setUserCountry(data.country_code);
+          const saved = localStorage.getItem('currency');
+          if (!saved) {
+            setCurrencyState(data.country_code === 'TR' ? 'TRY' : 'EUR');
+          }
+        }
+      })
+      .catch(() => {
+        setUserCountry(isTurkeyVisitor() ? 'TR' : 'FOREIGN');
+      });
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('currency', currency);
@@ -101,8 +136,10 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     return `${symbol}${formattedNumber}`;
   };
 
+  const isTurkeyUser = userCountry === 'TR' || (userCountry === 'UNKNOWN' && isTurkeyVisitor());
+
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, formatPrice, convertPrice, exchangeRates, refreshRates }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, formatPrice, convertPrice, exchangeRates, refreshRates, userCountry, isTurkeyUser }}>
       {children}
     </CurrencyContext.Provider>
   );

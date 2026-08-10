@@ -58,7 +58,7 @@ export default function Header() {
               <img
                 src="/logo_gradient.png"
                 alt="Comunidade Fine Arts"
-                className="h-10 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                className="h-14 md:h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
 

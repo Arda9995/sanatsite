@@ -53,12 +53,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const verifyOtp = async (email: string, token: string) => {
-    const { data, error } = await supabase.auth.verifyOtp({
+    let { data, error } = await supabase.auth.verifyOtp({
       email,
       token,
       type: 'signup'
     });
-    if (!error && data.session) {
+    if (error) {
+      const retry = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'email'
+      });
+      if (!retry.error) {
+        data = retry.data;
+        error = null;
+      }
+    }
+    if (!error && data?.session) {
       setSession(data.session);
       setUser(data.session.user);
     }

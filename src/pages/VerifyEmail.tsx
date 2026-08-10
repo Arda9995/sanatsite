@@ -12,7 +12,7 @@ export default function VerifyEmail() {
     const { verifyOtp, signUp } = useAuth();
 
     const [email, setEmail] = useState('');
-    const [otp, setOtp] = useState(['', '', '', '', '', '']);
+    const [otp, setOtp] = useState(['', '', '', '', '', '']); // 6 digits
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
     const [error, setError] = useState('');
@@ -29,6 +29,26 @@ export default function VerifyEmail() {
         }
     }, [location]);
 
+    const handleVerifyCode = async (codeToVerify: string) => {
+        if (codeToVerify.length !== 6) return;
+
+        setLoading(true);
+        setError('');
+
+        const { error } = await verifyOtp(email, codeToVerify);
+
+        if (error) {
+            setError(t('invalidCode'));
+            setLoading(false);
+        } else {
+            setSuccess(true);
+            setLoading(false);
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        }
+    };
+
     const handleChange = (index: number, value: string) => {
         if (!/^\d*$/.test(value)) return;
 
@@ -38,6 +58,10 @@ export default function VerifyEmail() {
 
         if (value && index < 5) {
             inputRefs.current[index + 1]?.focus();
+        }
+
+        if (newOtp.every(d => d !== '')) {
+            handleVerifyCode(newOtp.join(''));
         }
     };
 
@@ -49,7 +73,7 @@ export default function VerifyEmail() {
 
     const handlePaste = (e: React.ClipboardEvent) => {
         e.preventDefault();
-        const pastedData = e.clipboardData.getData('text').slice(0, 6).split('');
+        const pastedData = e.clipboardData.getData('text').trim().slice(0, 6).split('');
         const newOtp = [...otp];
         pastedData.forEach((char, i) => {
             if (/^\d$/.test(char)) {
@@ -58,28 +82,15 @@ export default function VerifyEmail() {
         });
         setOtp(newOtp);
         inputRefs.current[Math.min(pastedData.length, 5)]?.focus();
+
+        if (newOtp.every(d => d !== '')) {
+            handleVerifyCode(newOtp.join(''));
+        }
     };
 
     const handleVerify = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
-        const code = otp.join('');
-        if (code.length !== 6) return;
-
-        setLoading(true);
-        setError('');
-
-        const { error } = await verifyOtp(email, code);
-
-        if (error) {
-            setError(t('invalidCode'));
-            setLoading(false);
-        } else {
-            setSuccess(true);
-            setLoading(false);
-            setTimeout(() => {
-                navigate('/?login=true');
-            }, 2000);
-        }
+        await handleVerifyCode(otp.join(''));
     };
 
     const handleResend = async () => {

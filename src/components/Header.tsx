@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { ShoppingBag, User, Menu, X, Palette, Coins, Settings, Globe } from 'lucide-react';
+import { ShoppingBag, User, Menu, X, Coins, Settings, Globe } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -53,15 +53,13 @@ export default function Header() {
           <div className="flex justify-between items-center h-20">
             <Link
               to="/"
-              className="flex items-center space-x-2 group"
+              className="flex items-center group py-1"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 via-orange-500 to-yellow-500 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-500 group-hover:rotate-12">
-                <Palette className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-500" />
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-pink-500 via-orange-600 to-yellow-600 bg-clip-text text-transparent relative">
-                Cominudade
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 via-orange-600 to-yellow-600 group-hover:w-full transition-all duration-500"></span>
-              </span>
+              <img
+                src="/logo_gradient.png"
+                alt="Comunidade Fine Arts"
+                className="h-10 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              />
             </Link>
 
             <nav className="hidden md:flex items-center space-x-8">

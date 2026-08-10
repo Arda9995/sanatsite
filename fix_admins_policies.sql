@@ -20,7 +20,7 @@ RETURNS BOOLEAN SECURITY DEFINER AS $$
 BEGIN
   RETURN (
     (coalesce(auth.jwt() ->> 'email', '') = 'ardaonuk9995@gmail.com') OR
-    (auth.uid() = 'admin-arda') OR
+    (auth.uid()::text = 'admin-arda') OR
     EXISTS (
       SELECT 1 
       FROM public.admins 

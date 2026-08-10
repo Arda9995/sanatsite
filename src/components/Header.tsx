@@ -56,9 +56,9 @@ export default function Header() {
               className="flex items-center group py-1"
             >
               <img
-                src="/logo_elevenlabs.png"
+                src="/logo_elevenlabs_transparent_clean.png"
                 alt="Comunart"
-                className="h-14 md:h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                className="h-12 md:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
 

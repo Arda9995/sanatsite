@@ -60,8 +60,9 @@ export default function VerifyEmail() {
             inputRefs.current[index + 1]?.focus();
         }
 
-        if (newOtp.every(d => d !== '')) {
-            handleVerifyCode(newOtp.join(''));
+        const filledCode = newOtp.join('');
+        if (filledCode.length === 6) {
+            handleVerifyCode(filledCode);
         }
     };
 

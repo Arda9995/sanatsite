@@ -12,7 +12,7 @@ export default function VerifyEmail() {
     const { verifyOtp, signUp } = useAuth();
 
     const [email, setEmail] = useState('');
-    const [otp, setOtp] = useState(['', '', '', '', '', '']); // 6 digits
+    const [otp, setOtp] = useState(['', '', '', '', '', '', '', '']); // 8 digits to match Supabase
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
     const [error, setError] = useState('');
@@ -30,7 +30,7 @@ export default function VerifyEmail() {
     }, [location]);
 
     const handleVerifyCode = async (codeToVerify: string) => {
-        if (codeToVerify.length !== 6) return;
+        if (codeToVerify.length < 6) return;
 
         setLoading(true);
         setError('');
@@ -56,7 +56,7 @@ export default function VerifyEmail() {
         newOtp[index] = value.slice(-1);
         setOtp(newOtp);
 
-        if (value && index < 5) {
+        if (value && index < 7) {
             inputRefs.current[index + 1]?.focus();
         }
 
@@ -73,7 +73,7 @@ export default function VerifyEmail() {
 
     const handlePaste = (e: React.ClipboardEvent) => {
         e.preventDefault();
-        const pastedData = e.clipboardData.getData('text').trim().slice(0, 6).split('');
+        const pastedData = e.clipboardData.getData('text').trim().slice(0, 8).split('');
         const newOtp = [...otp];
         pastedData.forEach((char, i) => {
             if (/^\d$/.test(char)) {
@@ -81,10 +81,11 @@ export default function VerifyEmail() {
             }
         });
         setOtp(newOtp);
-        inputRefs.current[Math.min(pastedData.length, 5)]?.focus();
+        inputRefs.current[Math.min(pastedData.length, 7)]?.focus();
 
-        if (newOtp.every(d => d !== '')) {
-            handleVerifyCode(newOtp.join(''));
+        const filledCode = newOtp.join('');
+        if (filledCode.length >= 6) {
+            handleVerifyCode(filledCode);
         }
     };
 

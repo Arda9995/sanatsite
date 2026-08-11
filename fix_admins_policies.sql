@@ -6,15 +6,15 @@
 DROP TABLE IF EXISTS public.admins CASCADE;
 DROP FUNCTION IF EXISTS public.is_admin() CASCADE;
 
--- 1. Create the admins table fresh
+-- 1. Create the admins table fresh with text user_id to accept any ID format
 CREATE TABLE public.admins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- 2. Create a security definer function to check admin status
--- This avoids infinite recursion when checking RLS on the admins table itself
+-- Safe string comparison prevents "invalid input syntax for type uuid" errors
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN SECURITY DEFINER AS $$
 BEGIN
@@ -24,7 +24,7 @@ BEGIN
     EXISTS (
       SELECT 1 
       FROM public.admins 
-      WHERE user_id = auth.uid()
+      WHERE user_id::text = auth.uid()::text
     )
   );
 END;

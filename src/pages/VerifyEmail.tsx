@@ -9,7 +9,7 @@ export default function VerifyEmail() {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useLanguage();
-    const { verifyOtp, signUp } = useAuth();
+    const { verifyOtp, resendOtp } = useAuth();
 
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState(['', '', '', '', '', '']); // 6 digits
@@ -101,9 +101,9 @@ export default function VerifyEmail() {
         setError('');
         setMessage('');
 
-        const { error } = await signUp(email, 'dummy-not-used-for-resend');
+        const { error } = await resendOtp(email);
 
-        if (error && !error.message.includes('already registered')) {
+        if (error) {
             setError(error.message);
         } else {
             setMessage(t('verificationEmailSent'));

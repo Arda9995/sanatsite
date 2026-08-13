@@ -141,8 +141,8 @@ export default function OrdersPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Package className="w-5 h-5 text-orange-600" />
-                      <span className="font-semibold text-gray-900">
-                        {t('orderHash')}{order.id.slice(0, 8)}
+                      <span className="font-bold text-gray-900 font-mono text-lg">
+                        {order.order_number ? `#${order.order_number}` : `${t('orderHash')}${order.id.slice(0, 8)}`}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">

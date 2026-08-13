@@ -267,6 +267,14 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
               <h1 className="text-3xl font-light uppercase tracking-wide text-gray-900 mb-2">
                 {artwork.title}
               </h1>
+              {artwork.serial_number && (
+                <div className="mb-3">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1 rounded-md shadow-xs">
+                    <span>Eser No:</span>
+                    <span>{artwork.serial_number}</span>
+                  </span>
+                </div>
+              )}
               <p className="text-2xl font-light text-gray-900">
                 {formatPrice(calculatePrice() * quantity, (artwork.base_currency as 'USD' | 'EUR' | 'TRY' | 'GBP') || 'EUR')}
               </p>

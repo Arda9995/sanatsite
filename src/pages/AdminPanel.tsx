@@ -247,6 +247,32 @@ export default function AdminPanel() {
     }
   };
 
+  const handleUpdateArtistCode = async (artistId: string, currentCode: string) => {
+    const input = prompt(
+      language === 'tr' 
+        ? 'Bu sanatçı için 2 haneli özel kod belirleyin (Örn: 12):' 
+        : 'Enter 2-digit code for this artist (e.g. 12):', 
+      currentCode || ''
+    );
+    if (input === null) return;
+    const cleanCode = input.trim().padStart(2, '0').slice(-2);
+    if (!/^\d{2}$/.test(cleanCode)) {
+      alert(language === 'tr' ? 'Lütfen 2 haneli bir kod girin (Örn: 01, 12).' : 'Please enter a valid 2-digit code.');
+      return;
+    }
+
+    try {
+      const { error } = await (supabase.from('artists' as any) as any)
+        .update({ artist_code: cleanCode })
+        .eq('id', artistId);
+
+      if (error) throw error;
+      await loadData();
+    } catch (error: any) {
+      alert(error.message || 'Failed to update artist code');
+    }
+  };
+
   const handleApproveArtist = async (app: any) => {
     setSaving(true);
     try {
@@ -897,6 +923,11 @@ export default function AdminPanel() {
                         />
                         <h4 className="font-semibold text-gray-900 truncate">{artwork.title}</h4>
                         <p className="text-sm text-gray-600">{artwork.artists?.name || t('unknownArtist')}</p>
+                        {artwork.serial_number && (
+                          <span className="inline-block bg-orange-100 text-orange-800 text-xs font-mono font-bold px-2.5 py-0.5 rounded-md mt-1.5 border border-orange-200">
+                            Eser No: {artwork.serial_number}
+                          </span>
+                        )}
                         <p className="text-sm font-medium text-orange-600 mt-2">
                           {artwork.price} {artwork.base_currency || 'USD'}
                         </p>
@@ -940,6 +971,24 @@ export default function AdminPanel() {
                         </div>
                       </div>
                       <p className="text-sm text-gray-600 line-clamp-2 mb-4">{artist.bio}</p>
+                      
+                      {/* Artist Code Badge & Edit */}
+                      <div className="flex items-center justify-between text-xs bg-gray-50 p-2.5 rounded-xl border border-gray-100 mb-4">
+                        <span className="font-medium text-gray-600">{language === 'tr' ? 'Sanatçı Kodu:' : 'Artist Code:'}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-extrabold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md">
+                            {artist.artist_code || '--'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateArtistCode(artist.id, artist.artist_code || '')}
+                            className="text-xs text-orange-600 font-bold hover:underline"
+                          >
+                            {language === 'tr' ? 'Düzenle' : 'Edit'}
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="flex gap-2">
                         <button
                           onClick={() => navigate(artist.slug ? `/${artist.slug}` : `/artist/${artist.id}`)}

@@ -19,6 +19,7 @@ export interface Database {
           website: string | null
           instagram: string | null
           slug: string
+          artist_code: string | null
           created_at: string
         }
         Insert: {
@@ -30,6 +31,7 @@ export interface Database {
           website?: string | null
           instagram?: string | null
           slug: string
+          artist_code?: string | null
           created_at?: string
         }
         Update: {
@@ -41,6 +43,7 @@ export interface Database {
           website?: string | null
           instagram?: string | null
           slug?: string
+          artist_code?: string | null
           created_at?: string
         }
       }
@@ -84,6 +87,8 @@ export interface Database {
           is_available: boolean
           is_deleted: boolean
           featured: boolean
+          serial_number: string | null
+          artwork_seq: number | null
           created_at: string
         }
         Insert: {
@@ -102,6 +107,8 @@ export interface Database {
           is_available?: boolean
           is_deleted?: boolean
           featured?: boolean
+          serial_number?: string | null
+          artwork_seq?: number | null
           created_at?: string
         }
         Update: {
@@ -120,6 +127,8 @@ export interface Database {
           is_available?: boolean
           is_deleted?: boolean
           featured?: boolean
+          serial_number?: string | null
+          artwork_seq?: number | null
           created_at?: string
         }
       }
@@ -166,6 +175,8 @@ export interface Database {
           currency: string | null
           status: string
           shipping_address: Json | null
+          billing_address: Json | null
+          customer_notes: string | null
           delivery_date: string | null
           delivery_date_set_at: string | null
           delivery_date_set_by: string | null
@@ -178,6 +189,8 @@ export interface Database {
           currency?: string | null
           status?: string
           shipping_address?: Json | null
+          billing_address?: Json | null
+          customer_notes?: string | null
           delivery_date?: string | null
           delivery_date_set_at?: string | null
           delivery_date_set_by?: string | null
@@ -190,6 +203,8 @@ export interface Database {
           currency?: string | null
           status?: string
           shipping_address?: Json | null
+          billing_address?: Json | null
+          customer_notes?: string | null
           delivery_date?: string | null
           delivery_date_set_at?: string | null
           delivery_date_set_by?: string | null

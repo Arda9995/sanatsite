@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
+  resendOtp: (email: string) => Promise<{ error: any }>;
   verifyOtp: (email: string, token: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
@@ -49,6 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  const resendOtp = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email
+    });
+    return { error };
+  };
+
   const verifyOtp = async (email: string, token: string) => {
     let { data, error } = await supabase.auth.verifyOtp({
       email,
@@ -86,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, verifyOtp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, resendOtp, verifyOtp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

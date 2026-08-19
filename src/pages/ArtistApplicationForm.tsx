@@ -294,7 +294,7 @@ export default function ArtistApplicationForm() {
                             <div className="space-y-1 text-center">
                                 {previewUrl ? (
                                     <div className="relative inline-block">
-                                        <img src={previewUrl} alt="Preview" className="mx-auto h-32 w-32 object-cover rounded-full border-4 border-white shadow-lg" />
+                                        <img src={previewUrl} alt={language === 'tr' ? 'Önizleme' : 'Preview'} className="mx-auto h-32 w-32 object-cover rounded-full border-4 border-white shadow-lg" />
                                         {formData.photo_url && (
                                             <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
                                                 <CheckCircle2 className="w-5 h-5" />

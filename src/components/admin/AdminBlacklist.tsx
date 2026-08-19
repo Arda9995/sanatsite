@@ -95,7 +95,7 @@ export default function AdminBlacklist() {
                             value={newCountry}
                             onChange={(e) => setNewCountry(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                            placeholder="e.g. Russia"
+                            placeholder={language === 'tr' ? 'Örn: Rusya' : 'e.g. Russia'}
                             required
                         />
                     </div>
@@ -106,7 +106,7 @@ export default function AdminBlacklist() {
                             value={newArea}
                             onChange={(e) => setNewArea(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                            placeholder="e.g. Moscow"
+                            placeholder={language === 'tr' ? 'Örn: Moskova' : 'e.g. Moscow'}
                         />
                     </div>
                     <div className="flex items-end">
@@ -146,7 +146,7 @@ export default function AdminBlacklist() {
                         </div>
                     ))}
                     {blacklist.length === 0 && (
-                        <p className="text-gray-500 italic py-8 col-span-full text-center">No countries blacklisted.</p>
+                        <p className="text-gray-500 italic py-8 col-span-full text-center">{language === 'tr' ? 'Kara listede ülke bulunmuyor.' : 'No countries blacklisted.'}</p>
                     )}
                 </div>
             </div>

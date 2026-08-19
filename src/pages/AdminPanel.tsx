@@ -944,7 +944,7 @@ export default function AdminPanel() {
                         <p className="text-sm text-gray-600">{artwork.artists?.name || t('unknownArtist')}</p>
                         {artwork.serial_number && (
                           <span className="inline-block bg-orange-100 text-orange-800 text-xs font-mono font-bold px-2.5 py-0.5 rounded-md mt-1.5 border border-orange-200">
-                            Eser No: {artwork.serial_number}
+                            {language === 'tr' ? 'Eser No:' : 'Serial No:'} {artwork.serial_number}
                           </span>
                         )}
                         <p className="text-sm font-medium text-orange-600 mt-2">

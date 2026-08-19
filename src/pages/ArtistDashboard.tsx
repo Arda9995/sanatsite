@@ -267,7 +267,7 @@ export default function ArtistDashboard() {
                                                     <div className="relative w-32 h-32">
                                                         <img
                                                             src={formData.avatar_url}
-                                                            alt="Preview"
+                                                            alt={language === 'tr' ? 'Önizleme' : 'Preview'}
                                                             className="w-full h-full object-cover rounded-full border-4 border-white shadow-lg"
                                                             onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/150')}
                                                         />
@@ -389,7 +389,7 @@ export default function ArtistDashboard() {
                                             value={submissionTitle}
                                             onChange={(e) => setSubmissionTitle(e.target.value)}
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                                            placeholder={t('artworkTitlePlaceholder') || "Artwork Title"}
+                                            placeholder={t('artworkTitlePlaceholder') || (language === 'tr' ? 'Eser Başlığı' : 'Artwork Title')}
                                         />
                                     </div>
 
@@ -448,14 +448,14 @@ export default function ArtistDashboard() {
                         {/* Submission List */}
                         <div className="space-y-4">
                             {submissions.length === 0 ? (
-                                <p className="text-center text-gray-500 py-8">{t('noSubmissionsYet') || "No submissions yet. Upload your first artwork!"}</p>
+                                <p className="text-center text-gray-500 py-8">{t('noSubmissionsYet') || (language === 'tr' ? 'Henüz gönderi yok. İlk eserinizin görselini yükleyin!' : 'No submissions yet. Upload your first artwork!')}</p>
                             ) : (
                                 submissions.map((sub) => (
                                     <div key={sub.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-100 hover:border-orange-200 transition-colors">
-                                        <img src={sub.image_url} alt="Submission" className="w-16 h-16 object-cover rounded-md bg-gray-200" />
+                                        <img src={sub.image_url} alt={language === 'tr' ? 'Gönderi' : 'Submission'} className="w-16 h-16 object-cover rounded-md bg-gray-200" />
                                         <div className="flex-1">
-                                            <h4 className="font-semibold text-gray-900">{sub.title || 'Untitled'}</h4>
-                                            <p className="text-xs text-gray-500">{new Date(sub.created_at).toLocaleDateString()}</p>
+                                            <h4 className="font-semibold text-gray-900">{sub.title || (language === 'tr' ? 'İsimsiz' : 'Untitled')}</h4>
+                                            <p className="text-xs text-gray-500">{new Date(sub.created_at).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US')}</p>
                                         </div>
                                         <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1
                                             ${sub.status === 'approved' ? 'bg-green-100 text-green-700' :
@@ -479,7 +479,9 @@ export default function ArtistDashboard() {
                             <h2 className="text-2xl font-bold text-gray-900">{t('deliveryCalendar')}</h2>
                         </div>
                         <p className="text-gray-600 mb-6">
-                            View delivery dates for orders containing your artworks. Customers can request delivery date changes which admins will review.
+                            {language === 'tr'
+                                ? 'Eserlerinizi içeren siparişlerin teslimat tarihlerini görüntüleyin. Müşteriler teslimat tarihi değişikliği talep edebilir ve yöneticiler bunları inceleyebilir.'
+                                : 'View delivery dates for orders containing your artworks. Customers can request delivery date changes which admins will review.'}
                         </p>
                         <CustomerDeliveryCalendar userId={user!.id} />
                     </div>

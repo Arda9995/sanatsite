@@ -1,18 +1,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase'; // Using the supabase client that includes functions
+import { supabase } from '../lib/supabase';
 import { useCart } from '../contexts/CartContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
 
 export default function PaymentResultPage() {
+    const { t, language } = useLanguage();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { clearCart } = useCart();
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-    const [message, setMessage] = useState('Verifying payment...');
+    const [message, setMessage] = useState(language === 'tr' ? 'Ödeme doğrulanıyor...' : 'Verifying payment...');
 
-    const verificationStarted = useState(false); // Using state actually causes re-renders, better to use Ref for this specific pattern or move logic outside effect?
-    // Actually, useRef is the standard way to prevent strict mode double-firing for specialized init logic.
     const runOnce = useRef(false);
 
     useEffect(() => {
@@ -20,20 +20,18 @@ export default function PaymentResultPage() {
         const messageParam = searchParams.get('message');
         const token = searchParams.get('token');
 
-        // Handle explicit failure from backend redirect
         if (statusParam === 'failure') {
             setStatus('error');
-            setMessage(messageParam || 'Payment failed.');
+            setMessage(messageParam || (language === 'tr' ? 'Ödeme başarısız oldu.' : 'Payment failed.'));
             return;
         }
 
         if (!token) {
             setStatus('error');
-            setMessage('No payment token found.');
+            setMessage(language === 'tr' ? 'Ödeme doğrulaması için jeton bulunamadı.' : 'No payment token found.');
             return;
         }
 
-        // Prevent double invocation
         if (runOnce.current) return;
         runOnce.current = true;
 
@@ -42,8 +40,6 @@ export default function PaymentResultPage() {
 
     const verifyPayment = async (token: string) => {
         try {
-            // Call Supabase Edge Function to verify payment with Iyzico
-            // This ensures the token is valid and payment is actually successful (serverside check)
             const { data, error } = await supabase.functions.invoke('iyzico-check', {
                 body: { token },
             });
@@ -52,16 +48,16 @@ export default function PaymentResultPage() {
 
             if (data.status === 'success') {
                 setStatus('success');
-                setMessage('Payment successful! Your order has been created.');
+                setMessage(language === 'tr' ? 'Ödeme başarılı! Siparişiniz oluşturuldu.' : 'Payment successful! Your order has been created.');
                 await clearCart();
             } else {
-                throw new Error(data.errorMessage || 'Payment verification failed.');
+                throw new Error(data.errorMessage || (language === 'tr' ? 'Ödeme doğrulanamadı.' : 'Payment verification failed.'));
             }
 
         } catch (err: any) {
             console.error('Payment Verification Error:', err);
             setStatus('error');
-            setMessage(err.message || 'An error occurred while verifying the payment.');
+            setMessage(err.message || (language === 'tr' ? 'Ödeme doğrulanırken bir hata oluştu.' : 'An error occurred while verifying the payment.'));
         }
     };
 
@@ -71,7 +67,7 @@ export default function PaymentResultPage() {
                 {status === 'loading' && (
                     <>
                         <Loader className="w-16 h-16 text-orange-500 animate-spin mx-auto mb-4" />
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Processing Payment</h2>
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">{language === 'tr' ? 'Ödeme İşleniyor' : 'Processing Payment'}</h2>
                         <p className="text-gray-600">{message}</p>
                     </>
                 )}
@@ -79,13 +75,13 @@ export default function PaymentResultPage() {
                 {status === 'success' && (
                     <>
                         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Order Confirmed!</h2>
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">{language === 'tr' ? 'Sipariş Onaylandı!' : 'Order Confirmed!'}</h2>
                         <p className="text-gray-600 mb-8">{message}</p>
                         <button
                             onClick={() => navigate('/orders')}
                             className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:shadow-lg transition-transform hover:-translate-y-0.5"
                         >
-                            View My Orders
+                            {language === 'tr' ? 'Siparişlerimi Görüntüle' : 'View My Orders'}
                         </button>
                     </>
                 )}
@@ -93,13 +89,13 @@ export default function PaymentResultPage() {
                 {status === 'error' && (
                     <>
                         <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Payment Failed</h2>
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">{language === 'tr' ? 'Ödeme Başarısız' : 'Payment Failed'}</h2>
                         <p className="text-gray-600 mb-8">{message}</p>
                         <button
                             onClick={() => navigate('/checkout')}
                             className="w-full py-3 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-900 transition-colors"
                         >
-                            Try Again
+                            {language === 'tr' ? 'Tekrar Deneyin' : 'Try Again'}
                         </button>
                     </>
                 )}

@@ -270,7 +270,7 @@ export default function ArtworkDetailPage({ onShowAuth }: ArtworkDetailPageProps
               {artwork.serial_number && (
                 <div className="mb-3">
                   <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1 rounded-md shadow-xs">
-                    <span>Eser No:</span>
+                    <span>{language === 'tr' ? 'Eser No:' : 'Serial No:'}</span>
                     <span>{artwork.serial_number}</span>
                   </span>
                 </div>

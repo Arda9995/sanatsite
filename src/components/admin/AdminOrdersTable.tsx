@@ -506,7 +506,7 @@ export default function AdminOrdersTable() {
                                     value={trackingInfo.number}
                                     onChange={(e) => setTrackingInfo({ ...trackingInfo, number: e.target.value })}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                                    placeholder="e.g., 1Z999AA10123456784"
+                                    placeholder={language === 'tr' ? 'Örn: 1Z999AA10123456784' : 'e.g., 1Z999AA10123456784'}
                                 />
                             </div>
                             <div>

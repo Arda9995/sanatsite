@@ -267,6 +267,25 @@ export default function AdminPanel() {
         .eq('id', artistId);
 
       if (error) throw error;
+
+      // Cascade update to all existing artworks for this artist
+      const { data: artistArtworks } = await (supabase.from('artworks' as any) as any)
+        .select('id, artwork_seq')
+        .eq('artist_id', artistId)
+        .order('created_at', { ascending: true });
+
+      if (artistArtworks && artistArtworks.length > 0) {
+        await Promise.all(
+          artistArtworks.map((art: any, index: number) => {
+            const seq = art.artwork_seq || (index + 1);
+            const newSerial = `${cleanCode}${String(seq).padStart(4, '0')}`;
+            return (supabase.from('artworks' as any) as any)
+              .update({ artwork_seq: seq, serial_number: newSerial })
+              .eq('id', art.id);
+          })
+        );
+      }
+
       await loadData();
     } catch (error: any) {
       alert(error.message || 'Failed to update artist code');

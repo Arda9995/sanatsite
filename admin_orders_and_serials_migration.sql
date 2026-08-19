@@ -112,6 +112,26 @@ FOR EACH ROW
 WHEN (NEW.serial_number IS NULL OR NEW.serial_number = '')
 EXECUTE FUNCTION public.generate_artwork_serial_number();
 
+-- TRIGGER FUNCTION: Update artwork serial numbers when artist_code changes
+CREATE OR REPLACE FUNCTION public.update_artwork_serials_on_artist_code_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.artist_code IS DISTINCT FROM NEW.artist_code THEN
+        UPDATE public.artworks
+        SET serial_number = LPAD(NEW.artist_code, 2, '0') || LPAD(COALESCE(artwork_seq, 1)::text, 4, '0')
+        WHERE artist_id = NEW.id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_update_artwork_serials ON public.artists;
+CREATE TRIGGER trigger_update_artwork_serials
+AFTER UPDATE OF artist_code ON public.artists
+FOR EACH ROW
+EXECUTE FUNCTION public.update_artwork_serials_on_artist_code_change();
+
+
 
 -- 4. ORDERS: Ensure order_number, billing_address, and customer_notes columns exist
 ALTER TABLE public.orders 

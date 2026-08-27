@@ -4,7 +4,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { Trash2, AlertCircle, Plus } from 'lucide-react';
 
 export default function AdminBlacklist() {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [blacklist, setBlacklist] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [newCountry, setNewCountry] = useState('');

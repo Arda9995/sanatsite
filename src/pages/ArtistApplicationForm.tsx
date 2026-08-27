@@ -24,6 +24,7 @@ export default function ArtistApplicationForm() {
         name: '',
         surname: '',
         email: user?.email || '',
+        password: '',
         phone: '',
         artistType: '',
         portfolioLink: '',
@@ -46,10 +47,40 @@ export default function ArtistApplicationForm() {
             return;
         }
 
+        if (!user && (!formData.password || formData.password.length < 6)) {
+            setMessage(
+                language === 'tr'
+                    ? 'Hata: Sanatçı hesabı oluşturmak için en az 6 karakterli bir şifre girmelisiniz.'
+                    : 'Error: A password of at least 6 characters is required to create your artist account.'
+            );
+            return;
+        }
+
         setLoading(true);
         setMessage('');
 
         try {
+            let targetUserId = user?.id || null;
+
+            // If user is not logged in, create an auth user with the required password
+            if (!user) {
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                    email: formData.email,
+                    password: formData.password,
+                });
+
+                if (signUpError) {
+                    if (signUpError.message.toLowerCase().includes('already registered') || signUpError.message.toLowerCase().includes('already exists')) {
+                        throw new Error(language === 'tr' ? 'Bu e-posta adresi ile zaten kayıtlı bir hesap var. Lütfen giriş yapıp tekrar deneyin.' : 'An account with this email already exists. Please sign in and try again.');
+                    }
+                    throw signUpError;
+                }
+
+                if (signUpData?.user) {
+                    targetUserId = signUpData.user.id;
+                }
+            }
+
             const { error } = await (supabase
                 .from('artist_applications' as any) as any)
                 .insert([{
@@ -62,7 +93,7 @@ export default function ArtistApplicationForm() {
                     portfolio_file_url: formData.portfolioFileUrl || null,
                     artist_statement: formData.artistStatement,
                     photo_url: formData.photo_url || null,
-                    user_id: user?.id || null,
+                    user_id: targetUserId,
                     status: 'pending'
                 }]);
 
@@ -73,6 +104,7 @@ export default function ArtistApplicationForm() {
                 name: '',
                 surname: '',
                 email: user?.email || '',
+                password: '',
                 phone: '',
                 artistType: '',
                 portfolioLink: '',
@@ -219,6 +251,28 @@ export default function ArtistApplicationForm() {
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         />
                     </div>
+
+                    {!user && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                {t('password')} *
+                            </label>
+                            <input
+                                type="password"
+                                required
+                                minLength={6}
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                placeholder={language === 'tr' ? 'Hesabınız için en az 6 karakterli şifre belirleyin' : 'Create a password (minimum 6 characters)'}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                {language === 'tr' 
+                                    ? 'Sanatçı hesabınız ve paneline giriş yapmak için şifre belirlemeniz zorunludur.' 
+                                    : 'A password is required for logging into your artist account and panel.'}
+                            </p>
+                        </div>
+                    )}
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">

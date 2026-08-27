@@ -3,10 +3,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useCart } from '../contexts/CartContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { queueOrderConfirmationEmail } from '../lib/emailService';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
 
 export default function PaymentResultPage() {
-    const { t, language } = useLanguage();
+    const { language } = useLanguage();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { clearCart } = useCart();
@@ -49,6 +50,52 @@ export default function PaymentResultPage() {
             if (data.status === 'success') {
                 setStatus('success');
                 setMessage(language === 'tr' ? 'Ödeme başarılı! Siparişiniz oluşturuldu.' : 'Payment successful! Your order has been created.');
+
+                // Trigger Order Confirmation Email Queue with full details (addresses, notes, variations)
+                const orderId = data.orderId || data.order_id;
+                if (orderId) {
+                    try {
+                        const { data: orderDetails } = await supabase
+                            .from('orders')
+                            .select(`
+                                *,
+                                order_items (
+                                    id, price, quantity, size, material, frame,
+                                    artworks (title, image_url, serial_number, artists (name))
+                                )
+                            `)
+                            .eq('id', orderId)
+                            .maybeSingle();
+
+                        if (orderDetails && (orderDetails.shipping_address?.email || orderDetails.email)) {
+                            await queueOrderConfirmationEmail({
+                                orderId: orderDetails.id,
+                                orderNumber: orderDetails.order_number,
+                                customerEmail: orderDetails.shipping_address?.email || orderDetails.email || '',
+                                totalAmount: orderDetails.total_amount,
+                                currency: orderDetails.currency || 'EUR',
+                                shippingAddress: orderDetails.shipping_address,
+                                billingAddress: orderDetails.billing_address,
+                                customerNotes: orderDetails.customer_notes,
+                                items: (orderDetails.order_items || []).map((item: any) => ({
+                                    title: item.artworks?.title || 'Eser',
+                                    artistName: item.artworks?.artists?.name,
+                                    serialNumber: item.artworks?.serial_number,
+                                    imageUrl: item.artworks?.image_url,
+                                    quantity: item.quantity || 1,
+                                    price: item.price || 0,
+                                    size: item.size,
+                                    material: item.material,
+                                    frame: item.frame
+                                })),
+                                lang: language === 'tr' ? 'tr' : 'en'
+                            });
+                        }
+                    } catch (eErr) {
+                        console.warn('Could not queue order confirmation email:', eErr);
+                    }
+                }
+
                 await clearCart();
             } else {
                 throw new Error(data.errorMessage || (language === 'tr' ? 'Ödeme doğrulanamadı.' : 'Payment verification failed.'));

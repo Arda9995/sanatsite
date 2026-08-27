@@ -11,7 +11,7 @@ import CustomerDeliveryCalendar from '../components/customer/CustomerDeliveryCal
 export default function ArtistDashboard() {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [artist, setArtist] = useState<Artist | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);

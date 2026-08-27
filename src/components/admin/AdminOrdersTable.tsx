@@ -181,7 +181,7 @@ export default function AdminOrdersTable() {
                                 <tr key={order.id} className={order.is_viewed_by_admin ? 'hover:bg-gray-50' : 'bg-orange-50/60 hover:bg-orange-50'}>
                                     <td className="whitespace-nowrap py-4 pl-4 pr-3 font-mono font-bold text-gray-900">
                                         <div className="flex items-center gap-2">
-                                            #{order.order_number}
+                                            #{order.order_number || order.id.slice(0, 8)}
                                             {!order.is_viewed_by_admin && (
                                                 <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-800">
                                                     {t('newOrder')}

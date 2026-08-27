@@ -1,26 +1,45 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Package, Calendar } from 'lucide-react';
+import { Package, Calendar, MapPin, FileText, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { CornerFrame, AbstractBrush, CirclePattern, Sparkle, DottedCircle, SketchLine, PaintSplatter, HandDrawnStar, FloatingShapes, ScribbleCircle, Doodle } from '../components/DecorativeElements';
 
+interface AddressInfo {
+  recipient_name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zipCode?: string;
+}
+
 interface Order {
   id: string;
+  order_number?: string;
   total_amount: number;
-  currency?: 'USD' | 'EUR' | 'TRY' | 'GBP'; // Added currency field
+  currency?: 'USD' | 'EUR' | 'TRY' | 'GBP';
   status: string;
   created_at: string;
+  shipping_address?: AddressInfo;
+  billing_address?: AddressInfo;
+  customer_notes?: string;
   order_items: {
     id: string;
     price: number;
     quantity: number;
+    size?: string;
+    material?: string;
+    frame?: string;
     artworks: {
       title: string;
       image_url: string;
       artist_id: string;
+      serial_number?: string;
       artists: { name: string; slug: string };
     };
   }[];
@@ -51,10 +70,14 @@ export default function OrdersPage() {
           id,
           price,
           quantity,
+          size,
+          material,
+          frame,
           artworks (
             title,
             image_url,
             artist_id,
+            serial_number,
             artists (name, slug)
           )
         )
@@ -66,6 +89,20 @@ export default function OrdersPage() {
       setOrders(data as Order[]);
     }
     setLoading(false);
+  };
+
+  const renderAddr = (addr?: AddressInfo) => {
+    if (!addr) return <span className="text-gray-400 italic text-xs">{language === 'tr' ? 'Belirtilmedi' : 'Not specified'}</span>;
+    return (
+      <div className="text-xs text-gray-600 leading-relaxed">
+        {addr.recipient_name && <p className="font-bold text-gray-900">{addr.recipient_name}</p>}
+        {addr.address && <p>{addr.address}</p>}
+        {(addr.city || addr.state || addr.country) && (
+          <p>{[addr.city, addr.state, addr.zipCode, addr.country].filter(Boolean).join(', ')}</p>
+        )}
+        {addr.phone && <p className="text-gray-500 font-mono mt-0.5">{addr.phone}</p>}
+      </div>
+    );
   };
 
   if (!user) {
@@ -137,7 +174,8 @@ export default function OrdersPage() {
                 key={order.id}
                 className="bg-white border-2 border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow"
               >
-                <div className="flex items-start justify-between mb-4">
+                {/* Header info */}
+                <div className="flex items-start justify-between mb-4 pb-4 border-b border-gray-100">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Package className="w-5 h-5 text-orange-600" />
@@ -175,23 +213,88 @@ export default function OrdersPage() {
                   </div>
                 </div>
 
+                {/* Addresses & Notes Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-gray-50/70 p-4 rounded-xl border border-gray-100">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-orange-600 mb-1.5 uppercase">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>{language === 'tr' ? 'Teslimat Adresi' : 'Shipping Address'}</span>
+                    </div>
+                    {renderAddr(order.shipping_address)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-orange-600 mb-1.5 uppercase">
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>{language === 'tr' ? 'Fatura Adresi' : 'Billing Address'}</span>
+                    </div>
+                    {renderAddr(order.billing_address || order.shipping_address)}
+                  </div>
+                </div>
+
+                {/* Customer Notes if present */}
+                {order.customer_notes && (
+                  <div className="mb-4 bg-yellow-50 border border-yellow-200 p-3 rounded-xl flex items-start gap-2">
+                    <MessageSquare className="w-4 h-4 text-yellow-700 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-yellow-800 uppercase tracking-wider block">
+                        {language === 'tr' ? 'Sipariş Notu / Özel İstek:' : 'Order Note / Request:'}
+                      </span>
+                      <p className="text-xs text-yellow-900 italic">"{order.customer_notes}"</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Order items with variations */}
                 <div className="space-y-3">
                   {order.order_items.map((item) => (
-                    <div key={item.id} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div key={item.id} className="flex gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
                       <img
-                        src={item.artworks.image_url}
-                        alt={item.artworks.title}
+                        src={item.artworks?.image_url || 'https://via.placeholder.com/300?text=No+Image'}
+                        alt={item.artworks?.title || t('unknownArtwork')}
                         className="w-20 h-20 object-cover rounded-lg"
                       />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{item.artworks.title}</h3>
-                        <button
-                          onClick={() => navigate(item.artworks.artists?.slug ? `/${item.artworks.artists.slug}` : `/artist/${item.artworks.artist_id}`)}
-                          className="text-sm text-gray-600 hover:text-orange-600 transition-colors"
-                        >
-                          {item.artworks.artists?.name || t('unknownArtist')}
-                        </button>
-                        <div className="flex justify-between items-center mt-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{item.artworks?.title || t('unknownArtwork')}</h3>
+                            <button
+                              onClick={() => {
+                                if (item.artworks) {
+                                  navigate(item.artworks.artists?.slug ? `/${item.artworks.artists.slug}` : `/artist/${item.artworks.artist_id}`);
+                                }
+                              }}
+                              className="text-sm text-gray-600 hover:text-orange-600 transition-colors"
+                            >
+                              {item.artworks?.artists?.name || t('unknownArtist')}
+                            </button>
+                          </div>
+                          {item.artworks?.serial_number && (
+                            <span className="text-xs font-mono font-bold bg-orange-100 text-orange-800 px-2 py-0.5 rounded-md border border-orange-200">
+                              {language === 'tr' ? 'Eser No:' : 'Serial:'} {item.artworks.serial_number}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Selected Variations Badges */}
+                        <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                          {item.size && (
+                            <span className="bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-700 font-medium">
+                              {language === 'tr' ? 'Boyut' : 'Size'}: {item.size}
+                            </span>
+                          )}
+                          {item.material && (
+                            <span className="bg-orange-50 border border-orange-200 px-2 py-0.5 rounded text-orange-800 font-medium">
+                              {language === 'tr' ? 'Materyal' : 'Material'}: {item.material}
+                            </span>
+                          )}
+                          {item.frame && (
+                            <span className="bg-purple-50 border border-purple-200 px-2 py-0.5 rounded text-purple-800 font-medium">
+                              {language === 'tr' ? 'Çerçeve' : 'Frame'}: {item.frame}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-100">
                           <p className="text-gray-500 text-xs">{t('quantity')}: {item.quantity}</p>
                           <p className="text-lg font-bold text-orange-600">
                             {formatPrice(item.price * item.quantity, order.currency || 'EUR')}

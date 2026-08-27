@@ -29,6 +29,14 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     setError('');
 
     if (isSignUp) {
+      if (!password || password.length < 6) {
+        setError(
+          language === 'tr'
+            ? 'Şifre zorunludur ve en az 6 karakter olmalıdır.'
+            : 'Password is required and must be at least 6 characters long.'
+        );
+        return;
+      }
       if (!acceptedMembership || !acceptedKvkk) {
         setError(
           language === 'tr'

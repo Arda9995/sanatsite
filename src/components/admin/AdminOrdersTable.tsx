@@ -30,12 +30,6 @@ export default function AdminOrdersTable() {
                 .from('orders')
                 .select(`
                     *,
-                    customers (
-                        first_name,
-                        last_name,
-                        email,
-                        phone
-                    ),
                     order_items (
                         *,
                         artworks (
@@ -56,6 +50,38 @@ export default function AdminOrdersTable() {
             console.error('Error loading orders:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleInspectOrder = async (order: any) => {
+        setInspectingOrder(order);
+        if (!order.is_viewed_by_admin) {
+            handleMarkAsViewed(order.id);
+        }
+
+        if (!order.order_items || order.order_items.length === 0) {
+            try {
+                const { data: itemsData } = await supabase
+                    .from('order_items')
+                    .select(`
+                        *,
+                        artworks (
+                            title,
+                            image_url,
+                            serial_number,
+                            artists (
+                                name
+                            )
+                        )
+                    `)
+                    .eq('order_id', order.id);
+
+                if (itemsData && itemsData.length > 0) {
+                    setInspectingOrder((prev: any) => prev ? { ...prev, order_items: itemsData } : null);
+                }
+            } catch (err) {
+                console.error('Error fetching order items:', err);
+            }
         }
     };
 
@@ -119,17 +145,21 @@ export default function AdminOrdersTable() {
         if (!addr) return <span className="text-gray-400 font-light italic">{language === 'tr' ? 'Belirtilmedi' : 'Not specified'}</span>;
         if (typeof addr === 'string') return <span className="text-gray-700">{addr}</span>;
 
+        const displayName = addr.fullName || addr.recipient_name || addr.contactName;
+        const displayAddress = addr.address || addr.address_line1;
+
         return (
             <div className="text-sm text-gray-700 space-y-1">
-                {addr.recipient_name && <p className="font-semibold text-gray-900">{addr.recipient_name}</p>}
+                {displayName && <p className="font-semibold text-gray-900">{displayName}</p>}
                 {addr.company_name && <p className="font-medium text-gray-800">{addr.company_name}</p>}
                 {addr.tax_number && <p className="text-xs text-gray-500">VN/TC: {addr.tax_number}</p>}
-                {addr.address_line1 && <p>{addr.address_line1}</p>}
+                {displayAddress && <p>{displayAddress}</p>}
                 {addr.address_line2 && <p>{addr.address_line2}</p>}
                 <p>
-                    {[addr.district, addr.city, addr.postal_code, addr.country].filter(Boolean).join(', ')}
+                    {[addr.district, addr.city, addr.state, addr.postal_code || addr.zipCode, addr.country].filter(Boolean).join(', ')}
                 </p>
                 {addr.phone && <p className="text-xs text-gray-500 font-mono">Tel: {addr.phone}</p>}
+                {addr.email && <p className="text-xs text-gray-500 font-mono">E-posta: {addr.email}</p>}
             </div>
         );
     };
@@ -172,10 +202,18 @@ export default function AdminOrdersTable() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white text-sm">
-                        {filteredOrders.map((order) => {
-                            const customerName = order.customers 
-                                ? `${order.customers.first_name || ''} ${order.customers.last_name || ''}`.trim()
-                                : (order.shipping_address?.recipient_name || (language === 'tr' ? 'Misafir Müşteri' : 'Guest Customer'));
+                        {filteredOrders.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="text-center py-12 text-gray-400 font-light">
+                                    {language === 'tr' ? 'Henüz bu filtreye uygun sipariş bulunamadı.' : 'No orders found for this filter.'}
+                                </td>
+                            </tr>
+                        ) : filteredOrders.map((order) => {
+                            const customerName = order.shipping_address?.fullName 
+                                || order.shipping_address?.recipient_name 
+                                || order.shipping_address?.contactName 
+                                || (order.customers ? `${order.customers.first_name || ''} ${order.customers.last_name || ''}`.trim() : '')
+                                || (language === 'tr' ? 'Misafir Müşteri' : 'Guest Customer');
 
                             return (
                                 <tr key={order.id} className={order.is_viewed_by_admin ? 'hover:bg-gray-50' : 'bg-orange-50/60 hover:bg-orange-50'}>
@@ -210,14 +248,8 @@ export default function AdminOrdersTable() {
                                     </td>
                                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                         <div className="flex justify-end items-center gap-2">
-                                            {/* Inspector View Button */}
                                             <button
-                                                onClick={() => {
-                                                    setInspectingOrder(order);
-                                                    if (!order.is_viewed_by_admin) {
-                                                        handleMarkAsViewed(order.id);
-                                                    }
-                                                }}
+                                                onClick={() => handleInspectOrder(order)}
                                                 className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                                                 title={language === 'tr' ? 'Sipariş Detaylarını İncele' : 'Inspect Order Details'}
                                             >
@@ -296,9 +328,11 @@ export default function AdminOrdersTable() {
                                 <div>
                                     <p className="text-xs font-bold text-gray-400 uppercase">{language === 'tr' ? 'Müşteri Bilgileri' : 'Customer Info'}</p>
                                     <p className="font-bold text-gray-900 text-sm mt-0.5">
-                                        {inspectingOrder.customers 
-                                            ? `${inspectingOrder.customers.first_name || ''} ${inspectingOrder.customers.last_name || ''}`.trim()
-                                            : (inspectingOrder.shipping_address?.recipient_name || (language === 'tr' ? 'Misafir Müşteri' : 'Guest Customer'))}
+                                        {inspectingOrder.shipping_address?.fullName 
+                                            || inspectingOrder.shipping_address?.recipient_name 
+                                            || inspectingOrder.shipping_address?.contactName 
+                                            || (inspectingOrder.customers ? `${inspectingOrder.customers.first_name || ''} ${inspectingOrder.customers.last_name || ''}`.trim() : '')
+                                            || (language === 'tr' ? 'Misafir Müşteri' : 'Guest Customer')}
                                     </p>
                                     <p className="text-xs text-gray-500">{inspectingOrder.customers?.email || inspectingOrder.shipping_address?.email || '-'}</p>
                                     <p className="text-xs text-gray-500 font-mono">{inspectingOrder.customers?.phone || inspectingOrder.shipping_address?.phone || '-'}</p>
@@ -369,177 +403,8 @@ export default function AdminOrdersTable() {
                             </div>
                         )}
 
-                        {/* Order Items & Variations Breakdown */}
+                        {/* Order Items Breakdown */}
                         <div className="mb-6">
                             <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                                 <Package className="w-4 h-4 text-orange-600" />
-                                <span>{language === 'tr' ? 'Sipariş Edilen Eserler & Varyasyonlar' : 'Ordered Artworks & Variations'}</span>
-                            </h4>
-
-                            <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-gray-50 text-xs font-bold text-gray-400 uppercase">
-                                        <tr>
-                                            <th className="py-3 px-4">{language === 'tr' ? 'Eser' : 'Artwork'}</th>
-                                            <th className="py-3 px-4">{language === 'tr' ? 'Eser No' : 'Serial No'}</th>
-                                            <th className="py-3 px-4">{language === 'tr' ? 'Seçilen Varyasyonlar' : 'Variations'}</th>
-                                            <th className="py-3 px-4 text-center">{language === 'tr' ? 'Adet' : 'Qty'}</th>
-                                            <th className="py-3 px-4 text-right">{language === 'tr' ? 'Fiyat' : 'Price'}</th>
-                                            <th className="py-3 px-4 text-right">{language === 'tr' ? 'Toplam' : 'Subtotal'}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 text-sm">
-                                        {inspectingOrder.order_items?.map((item: any) => {
-                                            const serialNo = item.artworks?.serial_number || '-';
-                                            const artistName = item.artworks?.artists?.name || '-';
-                                            const subtotal = (item.price || 0) * (item.quantity || 1);
-
-                                            return (
-                                                <tr key={item.id} className="hover:bg-gray-50/50">
-                                                    {/* Artwork Image & Title */}
-                                                    <td className="py-3 px-4">
-                                                        <div className="flex items-center gap-3">
-                                                            {item.artworks?.image_url && (
-                                                                <img 
-                                                                    src={item.artworks.image_url} 
-                                                                    alt={item.artworks?.title} 
-                                                                    className="w-12 h-12 object-cover rounded-xl border border-gray-100 shadow-sm"
-                                                                />
-                                                            )}
-                                                            <div>
-                                                                <p className="font-bold text-gray-900 text-sm line-clamp-1">{item.artworks?.title || 'Eser'}</p>
-                                                                <p className="text-xs text-gray-500">{artistName}</p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    {/* 6-Digit Serial Number */}
-                                                    <td className="py-3 px-4 font-mono font-bold text-orange-600">
-                                                        {serialNo}
-                                                    </td>
-
-                                                    {/* Selected Variations */}
-                                                    <td className="py-3 px-4">
-                                                        <div className="flex flex-wrap gap-1.5 text-xs">
-                                                            {item.size && (
-                                                                <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-medium">
-                                                                    {language === 'tr' ? 'Boyut' : 'Size'}: {item.size}
-                                                                </span>
-                                                            )}
-                                                            {item.material && (
-                                                                <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-md font-medium border border-orange-100">
-                                                                    {language === 'tr' ? 'Materyal' : 'Material'}: {item.material}
-                                                                </span>
-                                                            )}
-                                                            {item.frame && (
-                                                                <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md font-medium border border-purple-100">
-                                                                    {language === 'tr' ? 'Çerçeve' : 'Frame'}: {item.frame}
-                                                                </span>
-                                                            )}
-                                                            {!item.size && !item.material && !item.frame && (
-                                                                <span className="text-gray-400 italic">{language === 'tr' ? 'Standart' : 'Standard'}</span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-
-                                                    {/* Quantity */}
-                                                    <td className="py-3 px-4 text-center font-bold text-gray-900">
-                                                        {item.quantity || 1}
-                                                    </td>
-
-                                                    {/* Price */}
-                                                    <td className="py-3 px-4 text-right font-medium text-gray-600">
-                                                        {formatPrice(item.price, inspectingOrder.currency)}
-                                                    </td>
-
-                                                    {/* Subtotal */}
-                                                    <td className="py-3 px-4 text-right font-bold text-gray-900">
-                                                        {formatPrice(subtotal, inspectingOrder.currency)}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Quick Action Bar inside Inspector */}
-                        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-gray-100">
-                            <button
-                                onClick={() => setInspectingOrder(null)}
-                                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm"
-                            >
-                                {t('cancel')}
-                            </button>
-
-                            <button
-                                onClick={() => {
-                                    setSelectedOrderForTracking(inspectingOrder);
-                                    setTrackingInfo({
-                                        number: inspectingOrder.tracking_number || '',
-                                        url: inspectingOrder.tracking_url || ''
-                                    });
-                                }}
-                                className="px-6 py-2.5 bg-orange-600 text-white rounded-xl font-medium hover:bg-orange-700 transition-colors text-sm flex items-center gap-2 shadow-sm shadow-orange-600/20"
-                            >
-                                <Truck className="w-4 h-4" />
-                                <span>{language === 'tr' ? 'Kargo & Takip Bilgilerini Düzenle' : 'Edit Tracking Info'}</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* TRACKING INFO MODAL */}
-            {selectedOrderForTracking && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
-                        <h3 className="text-2xl font-bold mb-2 text-gray-900">{t('markAsShipped')}</h3>
-                        <p className="text-sm font-mono text-gray-500 mb-6">Order: #{selectedOrderForTracking.order_number}</p>
-                        
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('trackingNumber')}</label>
-                                <input
-                                    type="text"
-                                    value={trackingInfo.number}
-                                    onChange={(e) => setTrackingInfo({ ...trackingInfo, number: e.target.value })}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                                    placeholder={language === 'tr' ? 'Örn: 1Z999AA10123456784' : 'e.g., 1Z999AA10123456784'}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('trackingURL')}</label>
-                                <input
-                                    type="url"
-                                    value={trackingInfo.url}
-                                    onChange={(e) => setTrackingInfo({ ...trackingInfo, url: e.target.value })}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                                    placeholder="https://..."
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4 mt-8">
-                            <button
-                                onClick={() => setSelectedOrderForTracking(null)}
-                                className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                            >
-                                {t('cancel')}
-                            </button>
-                            <button
-                                onClick={() => handleSaveTracking()}
-                                disabled={updating}
-                                className="flex-1 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors disabled:opacity-50"
-                            >
-                                {updating ? t('processing') : t('confirm')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
+                                <span>{language
